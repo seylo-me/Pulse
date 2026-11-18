@@ -429,81 +429,96 @@ struct SystemPopupView: View {
             .padding(.vertical, 7)
             .industrialCard(cornerRadius: 10)
             
-            // IP Details Card (Clean Minimalist: Specific Proxy Details, Real IP under Proxy, Subdued Local IP)
-            VStack(alignment: .leading, spacing: 3.5) {
+            // IP Details Card (Mockup-matched: PROXY IP label, Egress IP + Location, Direct IP + Local IP)
+            VStack(alignment: .leading, spacing: 4) {
                 if monitor.networkInfo.isProxyActive {
-                    // ── Proxy Egress IP (代理出口 + 详细地域节点描述)
-                    HStack {
-                        Text("PROXY IP · 代理出口")
-                            .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                            .foregroundColor(ThemeColors.accentPurple)
-                        Spacer()
-                        HStack(spacing: 4) {
-                            Text(monitor.networkInfo.countryFlag)
-                                .font(.system(size: 11))
-                            Text(monitor.networkInfo.proxyLocation)
-                                .font(.sfSans(9, weight: .medium, design: .monospaced))
-                                .foregroundColor(ThemeColors.textSecondary)
-                        }
-                    }
+                    // Row 1: Label
+                    Text("PROXY IP · 代理出口")
+                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(ThemeColors.accentPurple)
                     
+                    // Row 2: Egress IP (Left) + Flag & Location (Right)
                     HStack(alignment: .firstTextBaseline) {
                         Text(monitor.networkInfo.publicIPv4)
-                            .font(.sfSans(12.5, weight: .bold, design: .monospaced))
+                            .font(.sfSans(15, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
                         
                         Spacer()
                         
-                        // 弱化本地内网 IP 显示 (Subdued Local LAN IP)
-                        Text("内网: \(monitor.networkInfo.localIPv4)")
-                            .font(.sfSans(8.5, weight: .regular, design: .monospaced))
-                            .foregroundColor(ThemeColors.textMuted.opacity(0.65))
-                    }
-                    
-                    // 仅需真实 IP 放代理 IP 下面 (Real Direct IP directly under Proxy IP)
-                    if !monitor.networkInfo.directIPv4.isEmpty && monitor.networkInfo.directIPv4 != monitor.networkInfo.publicIPv4 {
                         HStack(spacing: 5) {
-                            Text("真实 IP")
-                                .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                                .foregroundColor(ThemeColors.accentCyan)
-                            Text(monitor.networkInfo.directIPv4)
+                            Text(monitor.networkInfo.countryFlag)
+                                .font(.system(size: 11))
+                            Text(monitor.networkInfo.proxyLocation)
                                 .font(.sfSans(10, weight: .medium, design: .monospaced))
                                 .foregroundColor(ThemeColors.textSecondary)
+                        }
+                    }
+                    
+                    // Row 3: Direct Domestic Real IP (with city) + Local Intranet IP (local)
+                    HStack(spacing: 16) {
+                        HStack(spacing: 5) {
+                            Text(monitor.networkInfo.directIPv4)
+                                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(ThemeColors.textSecondary)
+                            
                             if !monitor.networkInfo.directCountryFlag.isEmpty && monitor.networkInfo.directCountryFlag != "🌐" {
                                 Text(monitor.networkInfo.directCountryFlag)
                                     .font(.system(size: 9))
                             }
+                            
+                            let city = formatShortCity(from: monitor.networkInfo.directLocation)
+                            if !city.isEmpty {
+                                Text(city)
+                                    .font(.oppoSans(9, weight: .medium))
+                                    .foregroundColor(ThemeColors.textMuted)
+                            }
                         }
-                        .padding(.top, 1)
-                    }
-                } else {
-                    HStack {
-                        Text("PUBLIC IP · 公网出口")
-                            .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                            .foregroundColor(ThemeColors.textMuted)
-                        Spacer()
+                        
                         HStack(spacing: 4) {
+                            Text(monitor.networkInfo.localIPv4)
+                                .font(.sfSans(9, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                            Text("local")
+                                .font(.sfSans(8, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.5))
+                        }
+                    }
+                    .padding(.top, 1)
+                } else {
+                    // Non-Proxy Direct Mode
+                    Text("PUBLIC IP · 公网出口")
+                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(ThemeColors.textMuted)
+                    
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
+                            .font(.sfSans(15, weight: .bold, design: .monospaced))
+                            .foregroundColor(ThemeColors.textPrimary)
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 5) {
                             Text(monitor.networkInfo.countryFlag)
                                 .font(.system(size: 11))
                             Text(monitor.networkInfo.proxyLocation)
-                                .font(.sfSans(9, weight: .medium, design: .monospaced))
+                                .font(.sfSans(10, weight: .medium, design: .monospaced))
                                 .foregroundColor(ThemeColors.textSecondary)
                         }
                     }
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
-                            .font(.sfSans(12.5, weight: .bold, design: .monospaced))
-                            .foregroundColor(ThemeColors.textPrimary)
-                        Spacer()
-                        // 弱化本地内网 IP 显示
-                        Text("内网: \(monitor.networkInfo.localIPv4)")
-                            .font(.sfSans(8.5, weight: .regular, design: .monospaced))
+                    
+                    HStack(spacing: 4) {
+                        Text(monitor.networkInfo.localIPv4)
+                            .font(.sfSans(9, weight: .regular, design: .monospaced))
                             .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                        Text("local")
+                            .font(.sfSans(8, weight: .regular, design: .monospaced))
+                            .foregroundColor(ThemeColors.textMuted.opacity(0.5))
                     }
+                    .padding(.top, 1)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 7)
+            .padding(.vertical, 7.5)
             .industrialCard(cornerRadius: 10)
             
             // Active Processes Card (Consistent Spacing & Height with Hardware)
@@ -569,6 +584,13 @@ struct SystemPopupView: View {
         }
         .foregroundColor(color)
         .frame(width: 45, alignment: .trailing)
+    }
+    
+    // MARK: - Format Short City from Domestic Location
+    private func formatShortCity(from location: String) -> String {
+        let parts = location.components(separatedBy: " ").filter { !$0.isEmpty }
+        let filtered = parts.filter { $0 != "中国" && $0 != "联通" && $0 != "电信" && $0 != "移动" && $0 != "广电" && $0 != "铁通" }
+        return filtered.first ?? (parts.first ?? "")
     }
 
     // ════════════════════════════════════════════════════════════
