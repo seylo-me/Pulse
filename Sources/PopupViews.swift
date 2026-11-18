@@ -55,6 +55,7 @@ func loadPulseLogo() -> NSImage? {
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
     @Namespace private var systemTabNamespace
+    @State private var isCloseHovered: Bool = false
     
     var onOpenAI: () -> Void = {}
     var onClose: () -> Void = {}
@@ -159,63 +160,43 @@ struct SystemPopupView: View {
             
             Spacer(minLength: 8)
             
-            // Action Buttons: Quick Jump & Power / Close - Pure Dark Glass
-            HStack(spacing: 5) {
-                // ── Quick Jump to AI Center
-                Button(action: onOpenAI) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 11))
-                        .foregroundColor(ThemeColors.accentPurple)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
+            // Action Button: Dedicated Power / Close (Pure Dark Glass, Gray -> Red on Hover)
+            Button(action: onExit) {
+                Image(systemName: "power")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.40))
+                    .frame(width: 26, height: 26)
+                    .background(
+                        ZStack {
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("切换到 AI 额度中心")
-                .help("打开 AI 额度中心")
-                
-                // ── Dedicated Exit System Monitor (Independent from AI Telemetry)
-                Button(action: onExit) {
-                    Image(systemName: "power")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(ThemeColors.accentRed.opacity(0.85))
-                        .frame(width: 26, height: 26)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
+                                .fill(isCloseHovered ? Color(hex: 0xEF4444).opacity(0.16) : Color.black.opacity(0.25))
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(isCloseHovered ? 0.08 : 0.06), Color.white.opacity(0.02)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("退出系统监控状态栏 (可在 AI 窗口或状态栏右键随时恢复)")
+                        }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(
+                                isCloseHovered ? Color(hex: 0xEF4444).opacity(0.45) : Color.white.opacity(0.12),
+                                lineWidth: 0.8
+                            )
+                    )
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disableFocusRing()
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isCloseHovered = hovering
+                }
+            }
+            .help("退出系统监控状态栏")
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
@@ -882,24 +863,6 @@ struct SystemPopupView: View {
             .buttonStyle(.springPress)
             .disableFocusRing()
             .help(monitor.isAIStatusItemActive ? "切换至 AI 额度中心" : "恢复并打开 AI 额度状态栏")
-            
-            // Close / Collapse window (Dark Glass)
-            Button(action: onClose) {
-                Text("收起")
-                    .font(.oppoSans(9.5, weight: .regular))
-                    .foregroundColor(Color.white.opacity(0.65))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3.5)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.7)
-                    )
-            }
-            .buttonStyle(.springPress)
-            .disableFocusRing()
-            .help("收起当前浮窗 (Esc)")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -911,6 +874,8 @@ struct SystemPopupView: View {
 struct AIPopupView: View {
     @ObservedObject var quotaMgr: QuotaManager
     @Namespace private var aiTabNamespace
+    @State private var isCloseHovered: Bool = false
+    
     var onOpenSystem: () -> Void = {}
     var onClose: () -> Void = {}
     var onExit: () -> Void = {}
@@ -1006,61 +971,43 @@ struct AIPopupView: View {
             
             Spacer(minLength: 4)
             
-            HStack(spacing: 5) {
-                // ── Quick Jump to System Monitor
-                Button(action: onOpenSystem) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 11))
-                        .foregroundColor(ThemeColors.accentCyan)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
+            // ── Dedicated Exit AI Button (Gray initially, Glowing Red on hover)
+            Button(action: onExit) {
+                Image(systemName: "power")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.40))
+                    .frame(width: 26, height: 26)
+                    .background(
+                        ZStack {
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("打开系统监控面板")
-                
-                // ── Dedicated Exit AI Button (Independent from System Info & Net speed)
-                Button(action: onExit) {
-                    Image(systemName: "power")
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .foregroundColor(ThemeColors.accentRed.opacity(0.85))
-                        .frame(width: 25, height: 25)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
+                                .fill(isCloseHovered ? Color(hex: 0xEF4444).opacity(0.16) : Color.black.opacity(0.25))
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(isCloseHovered ? 0.08 : 0.06), Color.white.opacity(0.02)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("退出 AI 状态栏 (可在系统窗口或状态栏右键随时恢复)")
+                        }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(
+                                isCloseHovered ? Color(hex: 0xEF4444).opacity(0.45) : Color.white.opacity(0.12),
+                                lineWidth: 0.8
+                            )
+                    )
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disableFocusRing()
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isCloseHovered = hovering
+                }
+            }
+            .help("退出 AI 状态栏")
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -1227,24 +1174,6 @@ struct AIPopupView: View {
             .buttonStyle(.springPress)
             .disableFocusRing()
             .help(quotaMgr.isSystemStatusItemActive ? "切换至系统流量与硬件监控" : "恢复并打开系统网速状态栏")
-            
-            // Close / Collapse window (Dark Glass)
-            Button(action: onClose) {
-                Text("收起")
-                    .font(.oppoSans(9.5, weight: .regular))
-                    .foregroundColor(Color.white.opacity(0.65))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3.5)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.7)
-                    )
-            }
-            .buttonStyle(.springPress)
-            .disableFocusRing()
-            .help("收起当前浮窗 (Esc)")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
