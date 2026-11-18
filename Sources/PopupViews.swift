@@ -984,11 +984,7 @@ struct AIPopupView: View {
                     let source = quotaMgr.selectedAITab
                     AIProfileQuotaCardView(
                         source: source,
-                        profile: quotaMgr.profile(for: source),
-                        isStatusPinned: quotaMgr.activeStatusAI == source,
-                        onPinToStatusBar: {
-                            quotaMgr.setStatusAI(source)
-                        }
+                        profile: quotaMgr.profile(for: source)
                     )
                 }
                 .padding(.horizontal, 14)
@@ -1183,17 +1179,17 @@ struct AIPopupView: View {
         .padding(.bottom, 6)
     }
     
-    // Multi-AI Provider Rail: Deep Glass Capsule
+    // Multi-AI Provider Rail: Deep Glass Capsule (Single-Click Status Bar Sync)
     private var aiModelSwitcherView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 3) {
                 ForEach(ActiveAISource.allCases, id: \.rawValue) { source in
                     let isSelected = (quotaMgr.selectedAITab == source)
-                    let isPinned = (quotaMgr.activeStatusAI == source)
                     
                     Button(action: {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                             quotaMgr.selectedAITab = source
+                            quotaMgr.setStatusAI(source) // 切换直接联动状态栏，无需二次操作！
                         }
                         if source == .codex {
                             quotaMgr.fetchCodexLiveQuota(force: true)
@@ -1209,11 +1205,7 @@ struct AIPopupView: View {
                             Text(source.title)
                                 .font(.sfSans(11, weight: isSelected ? .semibold : .regular))
                             
-                            if isPinned {
-                                Circle()
-                                    .fill(ThemeColors.accentGreen)
-                                    .frame(width: 4, height: 4)
-                            } else if !source.isConfigured {
+                            if !source.isConfigured {
                                 Text("预留")
                                     .font(.pingFangSC(7.5, weight: .regular))
                                     .foregroundColor(Color.white.opacity(0.50))
@@ -1372,8 +1364,6 @@ struct AIPopupView: View {
 struct AIProfileQuotaCardView: View {
     let source: ActiveAISource
     let profile: AIProfileQuota
-    let isStatusPinned: Bool
-    let onPinToStatusBar: () -> Void
     
     @State private var isEmailVisible: Bool = UserDefaults.standard.bool(forKey: "sysbar_show_real_email")
     
@@ -1505,23 +1495,59 @@ struct AIProfileQuotaCardView: View {
                 
                 Spacer()
                 
-                // Status Pill
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(profile.isActive ? ThemeColors.accentGreen : Color(hex: 0xEF4444))
-                        .frame(width: 4.5, height: 4.5)
-                    Text(source.isConfigured ? (profile.isActive ? "Active" : "已无额度") : "预留就绪")
-                        .font(.sfSans(8.5, weight: .bold))
-                        .foregroundColor(source.isConfigured ? (profile.isActive ? Color(hex: 0x86EFAC) : Color(hex: 0xFCA5A5)) : ThemeColors.textSecondary)
+                // Status Pill & Action
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(profile.isActive ? ThemeColors.accentGreen : Color(hex: 0xEF4444))
+                            .frame(width: 4.5, height: 4.5)
+                        Text(source.isConfigured ? (profile.isActive ? "Active" : "已无额度") : "预留就绪")
+                            .font(.sfSans(8.5, weight: .bold))
+                            .foregroundColor(source.isConfigured ? (profile.isActive ? Color(hex: 0x86EFAC) : Color(hex: 0xFCA5A5)) : ThemeColors.textSecondary)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(profile.isActive ? ThemeColors.accentGreen.opacity(0.16) : Color(hex: 0x7F1D1D).opacity(0.4))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(profile.isActive ? ThemeColors.accentGreen.opacity(0.4) : Color(hex: 0xEF4444).opacity(0.4), lineWidth: 0.6)
+                    )
+                    .clipShape(Capsule())
+                    
+                    if source == .antigravity {
+                        Button(action: {
+                            if let url = URL(string: "https://one.google.com/explore-plan") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }) {
+                            Text("Upgrade ↗")
+                                .font(.sfSans(8, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: 0x2563EB))
+                                .cornerRadius(3)
+                        }
+                        .buttonStyle(.springPress)
+                        .disableFocusRing()
+                    } else if source == .codex {
+                        Button(action: {
+                            if let url = URL(string: "https://chatgpt.com/#settings/Subscription") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }) {
+                            Text("Manage ↗")
+                                .font(.sfSans(8, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: 0x059669))
+                                .cornerRadius(3)
+                        }
+                        .buttonStyle(.springPress)
+                        .disableFocusRing()
+                    }
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(profile.isActive ? ThemeColors.accentGreen.opacity(0.16) : Color(hex: 0x7F1D1D).opacity(0.4))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(profile.isActive ? ThemeColors.accentGreen.opacity(0.4) : Color(hex: 0xEF4444).opacity(0.4), lineWidth: 0.6)
-                )
-                .clipShape(Capsule())
             }
             
             // Out of Quota Warning Alert (Only for exhausted accounts)
@@ -1539,82 +1565,6 @@ struct AIProfileQuotaCardView: View {
                 .padding(.vertical, 4)
                 .background(Color(hex: 0x7F1D1D).opacity(0.35))
                 .cornerRadius(5)
-            }
-            
-            Divider()
-                .background(ThemeColors.hairlineBorder)
-                .padding(.vertical, 1)
-            
-            // Row 2: Status Bar Pinning Button & Subscription Link
-            HStack(spacing: 8) {
-                // Status Bar Pin Button
-                Button(action: onPinToStatusBar) {
-                    HStack(spacing: 5) {
-                        Image(systemName: isStatusPinned ? "checkmark.circle.fill" : "pin")
-                            .font(.system(size: 9, weight: .semibold))
-                        Text(isStatusPinned ? "正在状态栏常驻显示" : "设为状态栏常驻 ↗")
-                            .font(.sfSans(9, weight: .bold))
-                    }
-                    .foregroundColor(isStatusPinned ? ThemeColors.accentGreen : ThemeColors.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(isStatusPinned ? ThemeColors.accentGreen.opacity(0.12) : Color.white.opacity(0.05))
-                    .cornerRadius(5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(isStatusPinned ? ThemeColors.accentGreen.opacity(0.35) : ThemeColors.hairlineBorder, lineWidth: 0.6)
-                    )
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help(isStatusPinned ? "该模型的配额胶囊正在 macOS 顶部状态栏实时显示" : "将当前模型的实时配额胶囊固定到状态栏")
-                
-                Spacer()
-                
-                // Subscription Link
-                if source == .antigravity {
-                    Button(action: {
-                        if let url = URL(string: "https://one.google.com/explore-plan") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }) {
-                        HStack(spacing: 3) {
-                            Text("Google AI Pro")
-                                .font(.sfSans(9, weight: .semibold))
-                                .foregroundColor(Color(hex: 0x60A5FA))
-                            Text("Upgrade ↗")
-                                .font(.sfSans(8.5, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(Color(hex: 0x2563EB))
-                                .cornerRadius(3)
-                        }
-                    }
-                    .buttonStyle(.springPress)
-                    .disableFocusRing()
-                } else if source == .codex {
-                    Button(action: {
-                        if let url = URL(string: "https://chatgpt.com/#settings/Subscription") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }) {
-                        HStack(spacing: 3) {
-                            Text("ChatGPT Plus")
-                                .font(.sfSans(9, weight: .semibold))
-                                .foregroundColor(Color(hex: 0x10B981))
-                            Text("Manage ↗")
-                                .font(.sfSans(8.5, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(Color(hex: 0x059669))
-                                .cornerRadius(3)
-                        }
-                    }
-                    .buttonStyle(.springPress)
-                    .disableFocusRing()
-                }
             }
         }
         .padding(11)
