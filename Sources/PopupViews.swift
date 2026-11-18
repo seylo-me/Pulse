@@ -160,33 +160,12 @@ struct SystemPopupView: View {
             
             Spacer(minLength: 8)
             
-            // Action Button: Dedicated Power / Close (Pure Dark Glass, Gray -> Red on Hover)
+            // Action Button: Bare Power/Close SVG glyph (No outer box, soft gray -> vibrant red on hover)
             Button(action: onExit) {
                 Image(systemName: "power")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.40))
-                    .frame(width: 26, height: 26)
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(isCloseHovered ? Color(hex: 0xEF4444).opacity(0.16) : Color.black.opacity(0.25))
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(isCloseHovered ? 0.08 : 0.06), Color.white.opacity(0.02)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                        }
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(
-                                isCloseHovered ? Color(hex: 0xEF4444).opacity(0.45) : Color.white.opacity(0.12),
-                                lineWidth: 0.8
-                            )
-                    )
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
+                    .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -203,7 +182,7 @@ struct SystemPopupView: View {
         .padding(.bottom, 6)
     }
     
-    // MARK: - 2 Minimalist System Mode Switcher Pills (Deep Glass Capsule)
+    // MARK: - 2 Minimalist System Mode Switcher Pills (Ultra-Refined Frosted Glass Capsule)
     private var systemModeSwitcherView: some View {
         HStack(spacing: 0) {
             ForEach(SystemTab.allCases, id: \.rawValue) { tab in
@@ -215,13 +194,14 @@ struct SystemPopupView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                            .font(.system(size: 10.5, weight: isSelected ? .bold : .medium))
+                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
                         Text(tab.title)
-                            .font(.oppoSans(11, weight: isSelected ? .semibold : .regular))
+                            .font(.sfSans(11, weight: isSelected ? .bold : .regular))
+                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
                     }
-                    .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.55))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 5.5)
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -230,36 +210,31 @@ struct SystemPopupView: View {
                     ZStack {
                         if isSelected {
                             Capsule()
-                                .fill(Color(hex: 0x202228).opacity(0.70))
-                                .overlay(
-                                    Capsule()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    Color.white.opacity(0.14),
-                                                    Color.white.opacity(0.04)
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.18),
+                                            Color.white.opacity(0.06)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
                                 .overlay(
                                     Capsule()
                                         .strokeBorder(
                                             LinearGradient(
                                                 colors: [
-                                                    Color.white.opacity(0.35),
-                                                    Color.white.opacity(0.06)
+                                                    Color.white.opacity(0.50),
+                                                    Color.white.opacity(0.12)
                                                 ],
                                                 startPoint: .top,
                                                 endPoint: .bottom
                                             ),
-                                            lineWidth: 0.8
+                                            lineWidth: 0.75
                                         )
                                 )
-                                .shadow(color: Color.black.opacity(0.40), radius: 3, x: 0, y: 1.5)
-                                .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 3)
+                                .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
                                 .matchedGeometryEffect(id: "systemActiveCapsule", in: systemTabNamespace)
                         }
                     }
@@ -269,11 +244,18 @@ struct SystemPopupView: View {
         .padding(3)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.35))
+                .fill(Color.black.opacity(0.28))
         )
         .overlay(
             Capsule()
-                .strokeBorder(Color.white.opacity(0.07), lineWidth: 0.8)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.6
+                )
         )
     }
     
@@ -345,9 +327,8 @@ struct SystemPopupView: View {
                 .padding(.horizontal, 4)
                 .padding(.top, 2)
                 
-                // Nothing / Teenage Engineering Style Dot-Matrix Equalizer!
+                // Nothing / Teenage Engineering Style Dot-Matrix Equalizer (Zero Overlap Canvas)!
                 WaveformView(bars: monitor.spectrumBars)
-                    .frame(height: 52)
                 
                 // Cumulative Summary (Purple & Blue)
                 HStack {
@@ -428,24 +409,87 @@ struct SystemPopupView: View {
             .padding(.vertical, 7)
             .industrialCard(cornerRadius: 10)
             
-            // IP Details Card (Technical Monospaced)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack {
-                    Text("PUBLIC & LOCAL IP")
-                        .font(.sfSans(9, weight: .bold, design: .monospaced))
-                        .foregroundColor(ThemeColors.textMuted)
-                    Spacer()
-                    Text(monitor.networkInfo.countryFlag)
-                        .font(.system(size: 12))
-                }
-                HStack {
-                    Text(monitor.networkInfo.publicIPv4)
-                        .font(.sfSans(12, weight: .semibold, design: .monospaced))
-                        .foregroundColor(ThemeColors.textPrimary)
-                    Spacer()
-                    Text(monitor.networkInfo.localIPv4)
-                        .font(.sfSans(11, weight: .medium, design: .monospaced))
-                        .foregroundColor(ThemeColors.textSecondary)
+            // IP Details Card (Technical Monospaced, Proxy & Real IP Auto-Detection)
+            VStack(alignment: .leading, spacing: 4.5) {
+                if monitor.networkInfo.isProxyActive {
+                    // ── Proxy Egress IP (代理节点出口)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text("PROXY IP · 代理节点出口")
+                                .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(ThemeColors.accentPurple)
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Text(monitor.networkInfo.countryFlag)
+                                    .font(.system(size: 11))
+                                Text(monitor.networkInfo.proxyLocation)
+                                    .font(.sfSans(9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(ThemeColors.textSecondary)
+                            }
+                        }
+                        HStack {
+                            Text(monitor.networkInfo.publicIPv4)
+                                .font(.sfSans(12, weight: .bold, design: .monospaced))
+                                .foregroundColor(ThemeColors.textPrimary)
+                            Spacer()
+                            Text("内网: \(monitor.networkInfo.localIPv4)")
+                                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted)
+                        }
+                    }
+                    
+                    Divider()
+                        .background(ThemeColors.hairlineBorder.opacity(0.6))
+                        .padding(.vertical, 0.5)
+                    
+                    // ── Direct Domestic Real IP (本地真实宽带)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text("DIRECT IP · 本地真实直连")
+                                .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(ThemeColors.accentCyan)
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Text(monitor.networkInfo.directCountryFlag)
+                                    .font(.system(size: 11))
+                                Text(monitor.networkInfo.directLocation)
+                                    .font(.oppoSans(9, weight: .medium))
+                                    .foregroundColor(ThemeColors.textSecondary)
+                            }
+                        }
+                        HStack {
+                            Text(monitor.networkInfo.directIPv4)
+                                .font(.sfSans(12, weight: .bold, design: .monospaced))
+                                .foregroundColor(ThemeColors.textPrimary)
+                            Spacer()
+                            Text("直连链路")
+                                .font(.oppoSans(8.5, weight: .regular))
+                                .foregroundColor(ThemeColors.textMuted)
+                        }
+                    }
+                } else {
+                    HStack {
+                        Text("PUBLIC & LOCAL IP")
+                            .font(.sfSans(9, weight: .bold, design: .monospaced))
+                            .foregroundColor(ThemeColors.textMuted)
+                        Spacer()
+                        HStack(spacing: 3) {
+                            Text(monitor.networkInfo.countryFlag)
+                                .font(.system(size: 11))
+                            Text(monitor.networkInfo.proxyLocation)
+                                .font(.sfSans(9, weight: .medium, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted)
+                        }
+                    }
+                    HStack {
+                        Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
+                            .font(.sfSans(12, weight: .semibold, design: .monospaced))
+                            .foregroundColor(ThemeColors.textPrimary)
+                        Spacer()
+                        Text("内网: \(monitor.networkInfo.localIPv4)")
+                            .font(.sfSans(11, weight: .medium, design: .monospaced))
+                            .foregroundColor(ThemeColors.textSecondary)
+                    }
                 }
             }
             .padding(.horizontal, 14)
@@ -972,33 +1016,12 @@ struct AIPopupView: View {
             
             Spacer(minLength: 4)
             
-            // ── Dedicated Exit AI Button (Gray initially, Glowing Red on hover)
+            // ── Dedicated Exit AI Button (Bare SVG glyph, Gray initially, Glowing Red on hover)
             Button(action: onExit) {
                 Image(systemName: "power")
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.40))
-                    .frame(width: 26, height: 26)
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(isCloseHovered ? Color(hex: 0xEF4444).opacity(0.16) : Color.black.opacity(0.25))
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(isCloseHovered ? 0.08 : 0.06), Color.white.opacity(0.02)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                        }
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(
-                                isCloseHovered ? Color(hex: 0xEF4444).opacity(0.45) : Color.white.opacity(0.12),
-                                lineWidth: 0.8
-                            )
-                    )
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
+                    .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1015,7 +1038,7 @@ struct AIPopupView: View {
         .padding(.bottom, 6)
     }
     
-    // Multi-AI Provider Rail: Deep Glass Capsule (Single-Click Status Bar Sync)
+    // Multi-AI Provider Rail: Ultra-Refined Frosted Glass Capsule (Single-Click Status Bar Sync)
     private var aiModelSwitcherView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 3) {
@@ -1035,11 +1058,11 @@ struct AIPopupView: View {
                     }) {
                         HStack(spacing: 5) {
                             Image(systemName: source.iconSystemName)
-                                .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
-                                .foregroundColor(isSelected ? Color(hex: source.accentHex) : Color.white.opacity(0.55))
+                                .font(.system(size: 9.5, weight: isSelected ? .bold : .medium))
+                                .foregroundColor(isSelected ? Color(hex: source.accentHex) : Color.white.opacity(0.48))
                             
                             Text(source.title)
-                                .font(.sfSans(11, weight: isSelected ? .semibold : .regular))
+                                .font(.sfSans(11, weight: isSelected ? .bold : .regular))
                             
                             if !source.isConfigured {
                                 let badgeText = (source == .claude && source.isDetectedOnMachine) ? "待登录" : "待连接"
@@ -1055,7 +1078,7 @@ struct AIPopupView: View {
                                     .clipShape(Capsule())
                             }
                         }
-                        .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.55))
+                        .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
                         .padding(.horizontal, 10.5)
                         .padding(.vertical, 5.5)
                         .contentShape(Capsule())
@@ -1066,36 +1089,31 @@ struct AIPopupView: View {
                         ZStack {
                             if isSelected {
                                 Capsule()
-                                    .fill(Color(hex: 0x202228).opacity(0.70))
-                                    .overlay(
-                                        Capsule()
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color.white.opacity(0.14),
-                                                        Color.white.opacity(0.04)
-                                                    ],
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                )
-                                            )
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(0.18),
+                                                Color.white.opacity(0.06)
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
                                     )
                                     .overlay(
                                         Capsule()
                                             .strokeBorder(
                                                 LinearGradient(
                                                     colors: [
-                                                        Color.white.opacity(0.35),
-                                                        Color.white.opacity(0.06)
+                                                        Color.white.opacity(0.50),
+                                                        Color.white.opacity(0.12)
                                                     ],
                                                     startPoint: .top,
                                                     endPoint: .bottom
                                                 ),
-                                                lineWidth: 0.8
+                                                lineWidth: 0.75
                                             )
                                     )
-                                    .shadow(color: Color.black.opacity(0.40), radius: 3, x: 0, y: 1.5)
-                                    .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 3)
+                                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
                                     .matchedGeometryEffect(id: "aiActiveCapsule", in: aiTabNamespace)
                             }
                         }
@@ -1105,11 +1123,18 @@ struct AIPopupView: View {
             .padding(3)
             .background(
                 Capsule()
-                    .fill(Color.black.opacity(0.35))
+                    .fill(Color.black.opacity(0.28))
             )
             .overlay(
                 Capsule()
-                    .strokeBorder(Color.white.opacity(0.07), lineWidth: 0.8)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.6
+                    )
             )
             .padding(.horizontal, 14)
         }

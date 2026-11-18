@@ -274,4 +274,9 @@ struct NetworkInfo {
     var publicIPv6: String
     var countryFlag: String
     var gateway: String
+    var isProxyActive: Bool = false
+    var directIPv4: String = ""
+    var directCountryFlag: String = ""
+    var directLocation: String = ""
+    var proxyLocation: String = ""
 }

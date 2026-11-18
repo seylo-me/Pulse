@@ -383,26 +383,87 @@ class SystemMonitor: ObservableObject {
         return sources.isEmpty // Desktops have no battery sources!
     }
     
-    // MARK: - Network Details (IP, SSID)
+    // MARK: - Network Details (IP, SSID, Proxy & Direct Real IP Detection)
     private func fetchNetworkDetails() {
         DispatchQueue.global(qos: .background).async { [weak self] in
-            let localIP = self?.getLocalIPAddress() ?? "127.0.0.1"
-            let realSSID = self?.getRealWiFiSSID() ?? "已连接网络"
+            guard let self = self else { return }
+            let localIP = self.getLocalIPAddress()
+            let realSSID = self.getRealWiFiSSID()
             
             DispatchQueue.main.async {
-                self?.networkInfo.localIPv4 = localIP
-                self?.networkInfo.ssid = realSSID
+                self.networkInfo.localIPv4 = localIP
+                self.networkInfo.ssid = realSSID
             }
             
-            // Asynchronously query public IP if online
-            if let url = URL(string: "https://api.ipify.org"),
-               let ipStr = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-               !ipStr.isEmpty {
-                DispatchQueue.main.async {
-                    self?.networkInfo.publicIPv4 = ipStr
+            // 1. Query Egress/Public IP (typically goes through Proxy if configured)
+            var publicIP = ""
+            var publicCountry = ""
+            var publicCity = ""
+            if let url = URL(string: "https://ipinfo.io/json") {
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 3.0
+                if let data = URLSession.shared.synchronousData(with: req),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    publicIP = (json["ip"] as? String) ?? ""
+                    publicCountry = (json["country"] as? String) ?? ""
+                    publicCity = (json["city"] as? String) ?? ""
+                }
+            }
+            
+            // 2. Query Direct/Domestic Real IP (myip.ipip.net / ip-api)
+            var directIP = ""
+            var directLoc = ""
+            if let directUrl = URL(string: "https://myip.ipip.net") {
+                var req = URLRequest(url: directUrl)
+                req.timeoutInterval = 3.0
+                if let data = URLSession.shared.synchronousData(with: req),
+                   let str = String(data: data, encoding: .utf8) {
+                    // Extract IP: "当前 IP：139.227.64.88  来自于：中国 上海 上海  联通"
+                    if let range = str.range(of: #"\b(?:\d{1,3}\.){3}\d{1,3}\b"#, options: .regularExpression) {
+                        directIP = String(str[range])
+                    }
+                    if let locRange = str.range(of: "来自于：") {
+                        let rawLoc = String(str[locRange.upperBound...])
+                            .replacingOccurrences(of: "\n", with: "")
+                            .replacingOccurrences(of: "\t", with: " ")
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        directLoc = rawLoc
+                    }
+                }
+            }
+            
+            DispatchQueue.main.async {
+                if !publicIP.isEmpty {
+                    self.networkInfo.publicIPv4 = publicIP
+                    self.networkInfo.countryFlag = self.countryFlagEmoji(from: publicCountry)
+                    self.networkInfo.proxyLocation = publicCity.isEmpty ? publicCountry : "\(publicCountry) · \(publicCity)"
+                }
+                
+                if !directIP.isEmpty {
+                    self.networkInfo.directIPv4 = directIP
+                    self.networkInfo.directCountryFlag = "🇨🇳"
+                    self.networkInfo.directLocation = directLoc
+                }
+                
+                if !directIP.isEmpty && !publicIP.isEmpty && directIP != publicIP {
+                    self.networkInfo.isProxyActive = true
+                } else {
+                    self.networkInfo.isProxyActive = false
                 }
             }
         }
+    }
+    
+    private func countryFlagEmoji(from countryCode: String) -> String {
+        guard countryCode.count == 2 else { return "🌐" }
+        let base: UInt32 = 127397
+        var flag = ""
+        for scalar in countryCode.uppercased().unicodeScalars {
+            if let uni = UnicodeScalar(base + scalar.value) {
+                flag.append(String(uni))
+            }
+        }
+        return flag.isEmpty ? "🌐" : flag
     }
     
     private func getRealWiFiSSID() -> String {
@@ -446,5 +507,19 @@ class SystemMonitor: ObservableObject {
         let mb = Double(bytes) / 1_048_576.0
         if mb >= 1.0 { return String(format: "%.1f MB", mb) }
         return String(format: "%.0f KB", Double(bytes) / 1024.0)
+    }
+}
+
+extension URLSession {
+    func synchronousData(with request: URLRequest) -> Data? {
+        var data: Data?
+        let sem = DispatchSemaphore(value: 0)
+        let task = self.dataTask(with: request) { d, _, _ in
+            data = d
+            sem.signal()
+        }
+        task.resume()
+        _ = sem.wait(timeout: .now() + (request.timeoutInterval > 0 ? request.timeoutInterval : 4.0))
+        return data
     }
 }
