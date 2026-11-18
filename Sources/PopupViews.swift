@@ -120,23 +120,25 @@ struct SystemPopupView: View {
         HStack(alignment: .center, spacing: 10) {
             PulseBrandBadge()
             
-            VStack(alignment: .leading, spacing: 3) {
-                // Row 1: Pulse logo (v1.5 moved to bottom-left footer)
+            VStack(alignment: .leading, spacing: 0) {
+                // Row 1: Pulse logo (Enlarged SVG with crisp top-alignment)
                 HStack(alignment: .center, spacing: 6) {
                     if let logo = loadPulseLogo() {
                         Image(nsImage: logo)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 38.74, height: 10.5)
+                            .frame(width: 53.5, height: 14.5)
                     } else {
                         Text("PULSE")
-                            .font(.sfSans(13, weight: .bold, design: .monospaced))
+                            .font(.sfSans(14, weight: .bold, design: .monospaced))
                             .tracking(-0.3)
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                 }
                 
-                // Row 2: ONLINE + red dot + IP (Starts with ONLINE, strictly left-aligned with Pulse!)
+                Spacer(minLength: 0)
+                
+                // Row 2: ONLINE + red dot + IP (Flush bottom-aligned with icon badge)
                 HStack(alignment: .center, spacing: 5) {
                     Text("ONLINE")
                         .font(.sfSans(9.5, weight: .bold, design: .monospaced))
@@ -156,7 +158,9 @@ struct SystemPopupView: View {
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                 }
+                .offset(y: 5.5)
             }
+            .frame(height: 32)
             
             Spacer(minLength: 8)
             
@@ -977,10 +981,10 @@ struct AIPopupView: View {
     }
     
     private var aiHeaderView: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 10) {
             PulseBrandBadge()
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 5) {
                     Text("AI 额度中心")
                         .font(.sfSans(13.5, weight: .bold))
@@ -998,6 +1002,8 @@ struct AIPopupView: View {
                         .cornerRadius(3)
                 }
                 
+                Spacer(minLength: 0)
+                
                 HStack(spacing: 5) {
                     Text("实时配额")
                         .font(.oppoSans(9.5, weight: .medium))
@@ -1012,7 +1018,9 @@ struct AIPopupView: View {
                         .monospacedDigit()
                         .foregroundColor(ThemeColors.textMuted)
                 }
+                .offset(y: 3.5)
             }
+            .frame(height: 32)
             
             Spacer(minLength: 4)
             
