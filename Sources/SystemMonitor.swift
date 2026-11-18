@@ -56,6 +56,9 @@ class SystemMonitor: ObservableObject {
     
     // Cached hardware traits (computed once on launch to prevent continuous sysctl/IOKit polling)
     private lazy var cachedCPUBrand: String = { self.fetchCPUBrand() }()
+    private lazy var cachedGPUBrand: String = { self.fetchGPUBrand(cpuBrand: self.cachedCPUBrand) }()
+    private lazy var cachedCPUCores: (cores: Int, threads: Int) = { self.fetchCPUCores() }()
+    private lazy var cachedCPUFreq: String = { self.fetchCPUFreq(cpuBrand: self.cachedCPUBrand) }()
     private lazy var cachedIsDesktop: Bool = { self.fetchIsDesktopMac() }()
     private var cachedDiskUsage: (Double, Double) = (1562.0, 1863.0)
     private var lastDiskCheckTime: Date = .distantPast
@@ -149,7 +152,12 @@ class SystemMonitor: ObservableObject {
         let uptimeStr = cachedUptime
         let loadStr = getLoadAvg()
         let cpuBrand = cachedCPUBrand
+        let gpuBrand = cachedGPUBrand
+        let cpuCores = cachedCPUCores.cores
+        let cpuThreads = cachedCPUCores.threads
+        let cpuFreq = cachedCPUFreq
         let isDesktop = cachedIsDesktop
+        let powerSource = fetchPowerSourceDescription(isDesktop: isDesktop)
         
         let memPct = memTotal > 0 ? (memUsed / memTotal * 100.0) : 77.0
         let diskPct = diskTotal > 0 ? (diskUsed / diskTotal * 100.0) : 84.0
@@ -157,13 +165,13 @@ class SystemMonitor: ObservableObject {
         let newSnap = SystemSnapshot(
             cpuUsage: cpu > 0 ? cpu : Double.random(in: 6.0...8.5),
             cpuBrand: cpuBrand,
-            cpuFreq: "3.66 GHz",
+            cpuFreq: cpuFreq,
             cpuTemp: "67°C",
             cpuUser: uPct > 0 ? uPct : 7.0,
             cpuSystem: sPct > 0 ? sPct : 2.0,
-            cpuCores: 10,
-            cpuThreads: 20,
-            gpuBrand: "AMD Radeon Pro 5500 XT",
+            cpuCores: cpuCores,
+            cpuThreads: cpuThreads,
+            gpuBrand: gpuBrand,
             gpuUsage: Double.random(in: 5.0...8.0),
             gpuVRAMUsage: 96.0,
             gpuTemp: "69°C",
@@ -184,7 +192,7 @@ class SystemMonitor: ObservableObject {
             uploadTotal: formatBytes(totalUpBytes),
             downloadTotal: formatBytes(totalDownBytes),
             isDesktop: isDesktop,
-            powerSource: "交流电源供电 (AC Power · 台式机)",
+            powerSource: powerSource,
             uptime: uptimeStr,
             loadAvg: loadStr
         )
@@ -220,17 +228,87 @@ class SystemMonitor: ObservableObject {
         }
     }
     
-    // MARK: - Hardware CPU Inspection (Cached)
+    // MARK: - Hardware Inspection (Cached)
     private func fetchCPUBrand() -> String {
         var size = 0
         sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
-        var buffer = [CChar](repeating: 0, count: max(1, size))
-        sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0)
-        let brand = String(cString: buffer)
-        if brand.contains("Intel") {
-            return "10-Core Intel Core i9-10910 @ 3.60 GHz"
+        if size > 0 {
+            var buffer = [CChar](repeating: 0, count: size)
+            if sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0) == 0 {
+                let brand = String(cString: buffer).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !brand.isEmpty {
+                    if brand.contains("Intel") {
+                        return "10-Core Intel Core i9-10910 @ 3.60 GHz"
+                    }
+                    return brand
+                }
+            }
         }
-        return brand.isEmpty ? "10-Core Intel Core i9 @ 3.60 GHz" : brand
+        #if arch(arm64)
+        return "Apple Silicon (M-Series)"
+        #else
+        return "10-Core Intel Core i9 @ 3.60 GHz"
+        #endif
+    }
+    
+    private func fetchGPUBrand(cpuBrand: String) -> String {
+        if cpuBrand.contains("Apple") {
+            return "\(cpuBrand) GPU · 统一内存架构"
+        }
+        #if arch(arm64)
+        return "Apple M-Series GPU · 统一内存架构"
+        #else
+        return "AMD Radeon Pro 5500 XT · 8 GB GDDR6 显存"
+        #endif
+    }
+    
+    private func fetchCPUCores() -> (cores: Int, threads: Int) {
+        var ncpu: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        if sysctlbyname("hw.ncpu", &ncpu, &size, nil, 0) == 0 && ncpu > 0 {
+            var physCpu: Int32 = 0
+            if sysctlbyname("hw.physicalcpu", &physCpu, &size, nil, 0) == 0 && physCpu > 0 {
+                return (Int(physCpu), Int(ncpu))
+            }
+            return (Int(ncpu), Int(ncpu))
+        }
+        return (10, 20)
+    }
+    
+    private func fetchCPUFreq(cpuBrand: String) -> String {
+        if cpuBrand.contains("Apple") {
+            return "自适应高能效调频"
+        }
+        var freq: Int64 = 0
+        var size = MemoryLayout<Int64>.size
+        if sysctlbyname("hw.cpufrequency", &freq, &size, nil, 0) == 0 && freq > 0 {
+            let ghz = Double(freq) / 1_000_000_000.0
+            return String(format: "%.2f GHz", ghz)
+        }
+        return "3.66 GHz"
+    }
+    
+    private func fetchPowerSourceDescription(isDesktop: Bool) -> String {
+        if isDesktop {
+            return "交流电源供电 (AC Power · 台式机)"
+        }
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as [CFTypeRef]
+        for src in sources {
+            if let desc = IOPSGetPowerSourceDescription(snapshot, src)?.takeUnretainedValue() as? [String: Any] {
+                let isCharging = desc[kIOPSIsChargingKey] as? Bool ?? false
+                let current = desc[kIOPSCurrentCapacityKey] as? Int ?? 100
+                let state = desc[kIOPSPowerSourceStateKey] as? String ?? ""
+                if isCharging {
+                    return "电源已连接 · 充电中 (\(current)%)"
+                } else if state == kIOPSACPowerValue {
+                    return "交流电源直供 (AC · \(current)%)"
+                } else {
+                    return "内置电池供电 (\(current)%)"
+                }
+            }
+        }
+        return "交流电源供电 (AC Power)"
     }
     
     private func getUptime() -> String {

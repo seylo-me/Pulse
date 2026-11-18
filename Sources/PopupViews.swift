@@ -652,9 +652,9 @@ struct SystemPopupView: View {
                         .foregroundColor(ThemeColors.accentBlue)
                 }
                 
-                // 10-Core Telemetry Micro-Blocks (Lit with Subtle Electric Blue)
+                // CPU Cores Telemetry Micro-Blocks
                 HStack(spacing: 2.5) {
-                    ForEach(0..<10, id: \.self) { c in
+                    ForEach(0..<min(16, max(4, monitor.snapshot.cpuCores)), id: \.self) { c in
                         RoundedRectangle(cornerRadius: 1.5)
                             .fill(c < 2 ? Color(hex: 0x00A3FF) : (c < 5 ? Color(hex: 0x0284C7).opacity(0.6) : ThemeColors.dotInactive))
                             .frame(height: 4)
@@ -666,7 +666,7 @@ struct SystemPopupView: View {
             .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
             
-            // ── 2. GPU Card (AMD Radeon Pro 5500 XT 8GB VRAM)
+            // ── 2. GPU Card
             VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "display")
@@ -689,12 +689,12 @@ struct SystemPopupView: View {
                 
                 HStack(spacing: 5) {
                     gpuMiniBadge(title: "GPU 负载", value: String(format: "%.0f%%", monitor.snapshot.gpuUsage), valueColor: ThemeColors.accentBlue)
-                    gpuMiniBadge(title: "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.purpleLight)
+                    gpuMiniBadge(title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.purpleLight)
                     gpuMiniBadge(title: "核心温度", value: monitor.snapshot.gpuTemp, valueColor: ThemeColors.textPrimary)
-                    gpuMiniBadge(title: "型号", value: "5500 XT", valueColor: ThemeColors.textSecondary)
+                    gpuMiniBadge(title: "架构", value: monitor.snapshot.isAppleSilicon ? "Unified" : "5500 XT", valueColor: ThemeColors.textSecondary)
                 }
                 
-                Text("AMD Radeon Pro 5500 XT · 8 GB GDDR6 显存")
+                Text(monitor.snapshot.gpuBrand)
                     .font(.oppoSans(9.5))
                     .foregroundColor(ThemeColors.textMuted)
             }
@@ -836,20 +836,20 @@ struct SystemPopupView: View {
             .padding(.vertical, 6)
             .industrialCard(cornerRadius: 10)
             
-            // ── 5. Intel Desktop Power & Uptime Card (NO BATTERY MOCK!)
+            // ── 5. Power & Uptime Card (Adapts to Desktop vs Laptop)
             VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
-                    Image(systemName: "desktopcomputer")
+                    Image(systemName: monitor.snapshot.isDesktop ? "desktopcomputer" : "laptopcomputer")
                         .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.textSecondary)
                         .frame(width: 13)
-                    Text("系统运行状态 · 台式机")
+                    Text(monitor.snapshot.isDesktop ? "系统运行状态 · 台式机" : "系统运行状态 · MacBook")
                         .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     HStack(spacing: 3) {
                         Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
-                        Text("稳定直供")
+                        Text(monitor.snapshot.isDesktop ? "稳定直供" : "状态正常")
                             .font(.oppoSans(9, weight: .medium))
                             .foregroundColor(ThemeColors.accentGreen)
                     }
@@ -864,7 +864,7 @@ struct SystemPopupView: View {
                         Text("供电方式")
                             .font(.oppoSans(9))
                             .foregroundColor(ThemeColors.textMuted)
-                        Text("交流电源 (AC Power)")
+                        Text(monitor.snapshot.powerSource)
                             .font(.oppoSans(10, weight: .medium))
                             .foregroundColor(ThemeColors.textPrimary)
                     }

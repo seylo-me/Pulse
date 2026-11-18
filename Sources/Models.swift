@@ -189,6 +189,14 @@ struct SystemSnapshot {
     var uptime: String         // e.g. "14小时 22分钟"
     var loadAvg: String        // e.g. "2.30 3.05 3.41"
     
+    var isAppleSilicon: Bool {
+        #if arch(arm64)
+        return true
+        #else
+        return cpuBrand.contains("Apple")
+        #endif
+    }
+    
     static let initial = SystemSnapshot(
         cpuUsage: 2.1,
         cpuBrand: "10-Core Intel Core i9-10910 @ 3.60 GHz",
