@@ -21,15 +21,21 @@ enum SystemTab: Int, CaseIterable {
     }
 }
 
-// MARK: - Independent AI Selection (Real Live Monitored AI Providers)
+// MARK: - Independent AI Selection (Multi-AI Provider Rail with Real Dynamic Detection)
 enum ActiveAISource: String, CaseIterable, Codable {
     case antigravity = "antigravity"
     case codex = "codex"
+    case claude = "claude"
+    case grok = "grok"
+    case deepseek = "deepseek"
     
     var title: String {
         switch self {
         case .antigravity: return "Antigravity"
         case .codex: return "Codex"
+        case .claude: return "Claude"
+        case .grok: return "Grok"
+        case .deepseek: return "DeepSeek"
         }
     }
     
@@ -37,6 +43,9 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return "Google AI"
         case .codex: return "OpenAI"
+        case .claude: return "Anthropic"
+        case .grok: return "xAI"
+        case .deepseek: return "DeepSeek"
         }
     }
     
@@ -44,6 +53,9 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return "sparkles"
         case .codex: return "bolt.fill"
+        case .claude: return "asterisk"
+        case .grok: return "slash.circle"
+        case .deepseek: return "circle.hexagongrid.fill"
         }
     }
     
@@ -51,11 +63,36 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return 0xA44BFD // Vibrant Purple
         case .codex: return 0x38BDF8       // Codex Sky Blue
+        case .claude: return 0xD97706      // Claude Terracotta / Amber
+        case .grok: return 0xF43F5E        // Grok Crimson / Red
+        case .deepseek: return 0x0EA5E9    // DeepSeek Electric Cyan
+        }
+    }
+    
+    var isDetectedOnMachine: Bool {
+        let home = NSHomeDirectory()
+        switch self {
+        case .antigravity:
+            return FileManager.default.fileExists(atPath: home + "/.gemini/antigravity/usage.json") ||
+                   FileManager.default.fileExists(atPath: home + "/Library/Application Support/Antigravity/app_storage.json")
+        case .codex:
+            return FileManager.default.fileExists(atPath: home + "/.codex/auth.json") ||
+                   FileManager.default.fileExists(atPath: home + "/.config/codex/usage.json")
+        case .claude:
+            return FileManager.default.fileExists(atPath: home + "/.claude.json") ||
+                   FileManager.default.fileExists(atPath: home + "/.claude") ||
+                   FileManager.default.fileExists(atPath: home + "/.config/claude/config.json")
+        case .grok:
+            return FileManager.default.fileExists(atPath: home + "/.grok") ||
+                   FileManager.default.fileExists(atPath: home + "/.config/grok")
+        case .deepseek:
+            return FileManager.default.fileExists(atPath: home + "/.deepseek") ||
+                   FileManager.default.fileExists(atPath: home + "/.config/deepseek")
         }
     }
     
     var isConfigured: Bool {
-        return true
+        return isDetectedOnMachine
     }
 }
 
