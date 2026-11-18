@@ -941,63 +941,18 @@ struct SystemPopupView: View {
     // MARK: - Footer
     private var footerView: some View {
         HStack(alignment: .center, spacing: 8) {
-            // Clickable Version Badge (Opens GitHub Releases)
-            Button(action: {
-                if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
-                    NSWorkspace.shared.open(url)
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Text("PULSE")
-                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color.white.opacity(0.60))
-                    HStack(spacing: 2.5) {
-                        Text("v1.5")
-                            .font(.sfSans(7.5, weight: .bold, design: .monospaced))
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 6, weight: .bold))
-                    }
-                    .foregroundColor(Color.white.opacity(0.80))
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
-                    .background(Color.white.opacity(0.06))
-                    .cornerRadius(3.5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3.5)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.6)
-                    )
-                }
-            }
-            .buttonStyle(.plain)
-            .disableFocusRing()
-            .help("点击打开 GitHub 下载与版本更新页面 (v1.5)")
+            Text("v1.5")
+                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
             
             Spacer()
             
-            // Switch to AI Window or Restore AI Status Bar (Dark Glass)
-            Button(action: onOpenAI) {
-                HStack(spacing: 4) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 8.5))
-                    Text(monitor.isAIStatusItemActive ? "AI 额度 ↗" : "+ 开启 AI 状态栏")
-                        .font(.oppoSans(9, weight: .medium))
-                }
-                .foregroundColor(monitor.isAIStatusItemActive ? Color(hex: 0xC084FC) : Color.white.opacity(0.80))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3.5)
-                .background(
-                    monitor.isAIStatusItemActive
-                        ? ThemeColors.accentPurple.opacity(0.16)
-                        : Color.white.opacity(0.06)
-                )
-                .cornerRadius(5)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .strokeBorder(monitor.isAIStatusItemActive ? ThemeColors.accentPurple.opacity(0.40) : Color.white.opacity(0.10), lineWidth: 0.7)
-                )
-            }
-            .buttonStyle(.springPress)
-            .disableFocusRing()
+            FooterLinkButton(
+                title: monitor.isAIStatusItemActive ? "AI 额度 ↗" : "+ 开启 AI 状态栏",
+                icon: "sparkles",
+                activeColor: Color(hex: 0xC084FC),
+                action: onOpenAI
+            )
             .help(monitor.isAIStatusItemActive ? "切换至 AI 额度中心" : "恢复并打开 AI 额度状态栏")
         }
         .padding(.horizontal, 14)
@@ -1223,68 +1178,50 @@ struct AIPopupView: View {
     
     private var aiFooterView: some View {
         HStack(alignment: .center, spacing: 8) {
-            // Clickable Version Badge (Opens GitHub Releases)
-            Button(action: {
-                if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
-                    NSWorkspace.shared.open(url)
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Text("PULSE AI")
-                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color.white.opacity(0.60))
-                    HStack(spacing: 2.5) {
-                        Text("v1.5")
-                            .font(.sfSans(7.5, weight: .bold, design: .monospaced))
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 6, weight: .bold))
-                    }
-                    .foregroundColor(Color.white.opacity(0.80))
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1.5)
-                    .background(Color.white.opacity(0.06))
-                    .cornerRadius(3.5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3.5)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.6)
-                    )
-                }
-            }
-            .buttonStyle(.plain)
-            .disableFocusRing()
-            .help("点击打开 GitHub 下载与版本更新页面 (v1.5)")
+            Text("v1.5")
+                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
             
             Spacer()
             
-            // Switch to System Window or Restore System Status Bar (Dark Glass)
-            Button(action: onOpenSystem) {
-                HStack(spacing: 4) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 8.5))
-                    Text(quotaMgr.isSystemStatusItemActive ? "系统监控 ↗" : "+ 开启系统监控")
-                        .font(.oppoSans(9, weight: .medium))
-                }
-                .foregroundColor(quotaMgr.isSystemStatusItemActive ? ThemeColors.accentCyan : Color.white.opacity(0.80))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3.5)
-                .background(
-                    quotaMgr.isSystemStatusItemActive
-                        ? ThemeColors.accentCyan.opacity(0.16)
-                        : Color.white.opacity(0.06)
-                )
-                .cornerRadius(5)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .strokeBorder(quotaMgr.isSystemStatusItemActive ? ThemeColors.accentCyan.opacity(0.40) : Color.white.opacity(0.10), lineWidth: 0.7)
-                )
-            }
-            .buttonStyle(.springPress)
-            .disableFocusRing()
+            FooterLinkButton(
+                title: quotaMgr.isSystemStatusItemActive ? "系统监控 ↗" : "+ 开启系统监控",
+                icon: "waveform.path.ecg",
+                activeColor: ThemeColors.accentCyan,
+                action: onOpenSystem
+            )
             .help(quotaMgr.isSystemStatusItemActive ? "切换至系统流量与硬件监控" : "恢复并打开系统网速状态栏")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(ThemeColors.matteCardSecondary)
+    }
+}
+
+// MARK: - Minimalist Text Footer Link (No borders, gray default, highlights on hover)
+struct FooterLinkButton: View {
+    let title: String
+    let icon: String
+    let activeColor: Color
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 3.5) {
+                Image(systemName: icon)
+                    .font(.system(size: 8.5))
+                Text(title)
+                    .font(.oppoSans(9.5, weight: .medium))
+            }
+            .foregroundColor(isHovered ? activeColor : ThemeColors.textMuted)
+            .padding(.horizontal, 3)
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disableFocusRing()
+        .onHover { isHovered = $0 }
     }
 }
 
