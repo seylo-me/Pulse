@@ -173,8 +173,8 @@ class StatusBarController: NSObject {
     }
     
     private func setupPanels() {
-        // 1. System Panel (Traffic & Hardware only)
-        let sysRect = NSRect(x: 0, y: 0, width: 360, height: 580)
+        // 1. System Panel (Traffic & Hardware only - 100% Fit in One Screen)
+        let sysRect = NSRect(x: 0, y: 0, width: 360, height: 535)
         systemPanel = PulsePanel(contentRect: sysRect)
         let sysRoot = SystemPopupView(
             monitor: monitor,

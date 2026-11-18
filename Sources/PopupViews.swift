@@ -69,27 +69,27 @@ struct SystemPopupView: View {
             // ── 2 Minimalist System Mode Switcher Pills (iOS Glass Capsule Style)
             systemModeSwitcherView
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
             
-            // ── Main Content Tab Area (Fits completely in one screen with NO scrolling)
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 10) {
-                    switch monitor.systemTab {
-                    case .traffic:
-                        trafficTabContent
-                    case .hardware:
-                        hardwareTabContent
-                    }
+            // ── Main Content Tab Area (100% Fit in One Screen, No Scrolling)
+            VStack(spacing: 0) {
+                switch monitor.systemTab {
+                case .traffic:
+                    trafficTabContent
+                case .hardware:
+                    hardwareTabContent
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 10)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 14)
+            .padding(.top, 2)
+            
+            Spacer(minLength: 4)
             
             // ── Industrial Footer
             footerView
         }
-        .frame(width: 360, height: 580)
+        .frame(width: 360, height: 535)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
@@ -281,34 +281,34 @@ struct SystemPopupView: View {
     // MARK: - Tab 1: Traffic Monitor (Nothing Dot-Matrix Equalizer)
     // ════════════════════════════════════════════════════════════
     private var trafficTabContent: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             // Speed & Dot-Matrix Equalizer Card
-            VStack(spacing: 8) {
+            VStack(spacing: 5) {
                 // Big High-Contrast Numbers
                 HStack(alignment: .top) {
                     // Upload (Purple Dot Accent & Authentic 5x7 Dot Matrix Display)
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .bottom, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .bottom, spacing: 4) {
                             DotMatrixTextView(
                                 text: String(format: "%.0f", monitor.snapshot.uploadSpeed),
-                                dotSize: 3.2,
-                                dotSpacing: 1.4,
-                                charSpacing: 3.0,
+                                dotSize: 2.8,
+                                dotSpacing: 1.2,
+                                charSpacing: 2.4,
                                 activeColor: Color.white,
                                 showGrid: true
                             )
                             Text("KB/s")
-                                .font(.sfSans(11, weight: .semibold, design: .monospaced))
+                                .font(.sfSans(10, weight: .semibold, design: .monospaced))
                                 .foregroundColor(ThemeColors.textSecondary)
-                                .padding(.bottom, 2)
+                                .padding(.bottom, 1.5)
                         }
                         
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
                             Circle()
                                 .fill(ThemeColors.accentPurple)
-                                .frame(width: 5, height: 5)
+                                .frame(width: 4.5, height: 4.5)
                             Text("TX · 上传")
-                                .font(.oppoSans(10.5, weight: .medium))
+                                .font(.oppoSans(10, weight: .medium))
                                 .foregroundColor(ThemeColors.textSecondary)
                         }
                     }
@@ -316,50 +316,50 @@ struct SystemPopupView: View {
                     Spacer()
                     
                     // Download (Electric Blue Dot Accent & Authentic 5x7 Dot Matrix Display)
-                    VStack(alignment: .trailing, spacing: 6) {
-                        HStack(alignment: .bottom, spacing: 5) {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        HStack(alignment: .bottom, spacing: 4) {
                             DotMatrixTextView(
                                 text: String(format: "%.0f", monitor.snapshot.downloadSpeed),
-                                dotSize: 3.2,
-                                dotSpacing: 1.4,
-                                charSpacing: 3.0,
+                                dotSize: 2.8,
+                                dotSpacing: 1.2,
+                                charSpacing: 2.4,
                                 activeColor: Color.white,
                                 showGrid: true
                             )
                             Text("KB/s")
-                                .font(.sfSans(11, weight: .semibold, design: .monospaced))
+                                .font(.sfSans(10, weight: .semibold, design: .monospaced))
                                 .foregroundColor(ThemeColors.textSecondary)
-                                .padding(.bottom, 2)
+                                .padding(.bottom, 1.5)
                         }
                         
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
                             Circle()
                                 .fill(ThemeColors.accentBlue)
-                                .frame(width: 5, height: 5)
+                                .frame(width: 4.5, height: 4.5)
                             Text("RX · 下载")
-                                .font(.oppoSans(10.5, weight: .medium))
+                                .font(.oppoSans(10, weight: .medium))
                                 .foregroundColor(ThemeColors.textSecondary)
                         }
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.top, 4)
+                .padding(.top, 2)
                 
                 // Nothing / Teenage Engineering Style Dot-Matrix Equalizer!
                 WaveformView(bars: monitor.spectrumBars)
-                    .frame(height: 76)
+                    .frame(height: 52)
                 
                 // Cumulative Summary (Purple & Blue)
                 HStack {
                     HStack(spacing: 4) {
                         Text("↑")
-                            .font(.sfSans(10, weight: .bold))
+                            .font(.sfSans(9.5, weight: .bold))
                             .foregroundColor(ThemeColors.accentPurple)
                         Text("累计上传")
-                            .font(.oppoSans(10.5, weight: .medium))
+                            .font(.oppoSans(9.5, weight: .medium))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.uploadTotal)
-                            .font(.sfSans(11, weight: .bold, design: .monospaced))
+                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                     
@@ -367,36 +367,36 @@ struct SystemPopupView: View {
                     
                     HStack(spacing: 4) {
                         Text("↓")
-                            .font(.sfSans(10, weight: .bold))
+                            .font(.sfSans(9.5, weight: .bold))
                             .foregroundColor(ThemeColors.accentBlue)
                         Text("累计下载")
-                            .font(.oppoSans(10.5, weight: .medium))
+                            .font(.oppoSans(9.5, weight: .medium))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.downloadTotal)
-                            .font(.sfSans(11, weight: .bold, design: .monospaced))
+                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                 }
                 .padding(.horizontal, 4)
-                .padding(.bottom, 2)
+                .padding(.bottom, 1)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .industrialCard()
+            .padding(.vertical, 8)
+            .industrialCard(cornerRadius: 10)
             
             // Wi-Fi Card (Real Dynamically Detected SSID)
             HStack(spacing: 10) {
                 Image(systemName: "wifi")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(ThemeColors.textSecondary)
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(monitor.networkInfo.ssid)
-                        .font(.sfSans(13, weight: .bold))
+                        .font(.sfSans(12, weight: .bold))
                         .foregroundColor(ThemeColors.textPrimary)
                     
                     Text("5 GHz · 866 Mbps · 信道 157")
-                        .font(.sfSans(10, weight: .medium, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                         .foregroundColor(ThemeColors.textMuted)
                 }
                 
@@ -405,99 +405,100 @@ struct SystemPopupView: View {
                 HStack(spacing: 5) {
                     // Discrete dot signal indicator
                     HStack(spacing: 2) {
-                        Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
-                        Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
-                        Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
-                        Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
+                        Circle().fill(Color.white).frame(width: 3, height: 3)
+                        Circle().fill(Color.white).frame(width: 3, height: 3)
+                        Circle().fill(Color.white).frame(width: 3, height: 3)
+                        Circle().fill(Color.white).frame(width: 3, height: 3)
                     }
                     .padding(.trailing, 2)
                     
-                    HStack(spacing: 4) {
-                        Circle().fill(ThemeColors.accentGreen).frame(width: 4, height: 4)
+                    HStack(spacing: 3) {
+                        Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
                         Text("已连接")
-                            .font(.oppoSans(9.5, weight: .medium))
+                            .font(.oppoSans(9, weight: .medium))
                             .foregroundColor(ThemeColors.textSecondary)
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
                     .background(ThemeColors.matteCardSecondary)
-                    .cornerRadius(4)
+                    .cornerRadius(3.5)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 7)
             .industrialCard(cornerRadius: 10)
             
             // IP Details Card (Technical Monospaced)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text("PUBLIC & LOCAL IP")
-                        .font(.sfSans(9.5, weight: .bold, design: .monospaced))
+                        .font(.sfSans(9, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.textMuted)
                     Spacer()
                     Text(monitor.networkInfo.countryFlag)
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
                 HStack {
                     Text(monitor.networkInfo.publicIPv4)
-                        .font(.sfSans(13, weight: .semibold, design: .monospaced))
+                        .font(.sfSans(12, weight: .semibold, design: .monospaced))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     Text(monitor.networkInfo.localIPv4)
-                        .font(.sfSans(12, weight: .medium, design: .monospaced))
+                        .font(.sfSans(11, weight: .medium, design: .monospaced))
                         .foregroundColor(ThemeColors.textSecondary)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
             
             // Active Processes Card (Consistent Spacing & Height with Hardware)
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 HStack {
                     Text("ACTIVE PROCESSES")
-                        .font(.sfSans(9.5, weight: .bold, design: .monospaced))
+                        .font(.sfSans(9, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.textMuted)
                     Spacer()
                     Text("TX")
-                        .font(.sfSans(9.5, weight: .bold, design: .monospaced))
+                        .font(.sfSans(9, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.accentPurple)
                         .frame(width: 45, alignment: .trailing)
                     Text("RX")
-                        .font(.sfSans(9.5, weight: .bold, design: .monospaced))
+                        .font(.sfSans(9, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.accentBlue)
                         .frame(width: 45, alignment: .trailing)
                 }
-                .padding(.bottom, 2)
+                .padding(.bottom, 1)
                 
-                ForEach(monitor.topProcesses.prefix(5)) { item in
+                ForEach(monitor.topProcesses.prefix(4)) { item in
                     HStack(spacing: 8) {
                         Image(systemName: item.iconSystemName)
-                            .font(.system(size: 10))
+                            .font(.system(size: 9.5))
                             .foregroundColor(ThemeColors.textSecondary)
-                            .frame(width: 14)
+                            .frame(width: 13)
                         
                         Text(item.name)
-                            .font(.oppoSans(11.5, weight: .medium))
+                            .font(.oppoSans(11, weight: .medium))
                             .foregroundColor(ThemeColors.textPrimary)
+                            .lineLimit(1)
                         
                         Spacer()
                         
                         Text(item.uploadSpeed)
-                            .font(.sfSans(11, weight: .medium, design: .monospaced))
+                            .font(.sfSans(10, weight: .medium, design: .monospaced))
                             .foregroundColor(ThemeColors.textSecondary)
                             .frame(width: 45, alignment: .trailing)
                         
                         Text(item.downloadSpeed)
-                            .font(.sfSans(11, weight: .bold, design: .monospaced))
+                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
                             .frame(width: 45, alignment: .trailing)
                     }
-                    .padding(.vertical, 1.5)
+                    .padding(.vertical, 1)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
         }
     }
@@ -506,27 +507,27 @@ struct SystemPopupView: View {
     // MARK: - Tab 2: Hardware Overview (Intel iMac 2020 Real Specs with Generous Whitespace & Restrained Accents)
     // ════════════════════════════════════════════════════════════
     private var hardwareTabContent: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 5.5) {
             // ── 1. CPU Card (Intel Core i9 10-Core / 20 Threads)
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "cpu")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.accentBlue)
-                        .frame(width: 14)
+                        .frame(width: 13)
                     Text("CPU 处理器")
-                        .font(.oppoSans(12, weight: .semibold))
+                        .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     Text(String(format: "%.1f%%", monitor.snapshot.cpuUsage))
-                        .font(.sfSans(14, weight: .bold, design: .monospaced))
+                        .font(.sfSans(13, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.textPrimary)
                 }
                 
                 // Restrained Blue Accent Bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
@@ -535,57 +536,57 @@ struct SystemPopupView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.cpuUsage / 100.0))), height: 4)
+                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.cpuUsage / 100.0))), height: 3.5)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 3.5)
                 
                 HStack {
                     Text(monitor.snapshot.cpuBrand)
-                        .font(.oppoSans(10))
+                        .font(.oppoSans(9.5))
                         .foregroundColor(ThemeColors.textSecondary)
                     Spacer()
                     Text("\(monitor.snapshot.cpuFreq) · \(monitor.snapshot.cpuTemp)")
-                        .font(.sfSans(10, weight: .semibold, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .semibold, design: .monospaced))
                         .foregroundColor(ThemeColors.accentBlue)
                 }
                 
                 // 10-Core Telemetry Micro-Blocks (Lit with Subtle Electric Blue)
-                HStack(spacing: 3) {
+                HStack(spacing: 2.5) {
                     ForEach(0..<10, id: \.self) { c in
                         RoundedRectangle(cornerRadius: 1.5)
                             .fill(c < 2 ? Color(hex: 0x00A3FF) : (c < 5 ? Color(hex: 0x0284C7).opacity(0.6) : ThemeColors.dotInactive))
-                            .frame(height: 5)
+                            .frame(height: 4)
                     }
                 }
-                .padding(.top, 1)
+                .padding(.top, 0.5)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
             
             // ── 2. GPU Card (AMD Radeon Pro 5500 XT 8GB VRAM)
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "display")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.accentPurple)
-                        .frame(width: 14)
+                        .frame(width: 13)
                     Text("图形显卡 GPU")
-                        .font(.oppoSans(12, weight: .semibold))
+                        .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     Text("60 FPS")
-                        .font(.sfSans(10, weight: .bold, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.purpleLight)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1.5)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
                         .background(ThemeColors.accentPurple.opacity(0.15))
                         .overlay(RoundedRectangle(cornerRadius: 3).stroke(ThemeColors.accentPurple.opacity(0.3), lineWidth: 0.8))
                         .cornerRadius(3)
                 }
                 
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     gpuMiniBadge(title: "GPU 负载", value: String(format: "%.0f%%", monitor.snapshot.gpuUsage), valueColor: ThemeColors.accentBlue)
                     gpuMiniBadge(title: "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.purpleLight)
                     gpuMiniBadge(title: "核心温度", value: monitor.snapshot.gpuTemp, valueColor: ThemeColors.textPrimary)
@@ -593,33 +594,33 @@ struct SystemPopupView: View {
                 }
                 
                 Text("AMD Radeon Pro 5500 XT · 8 GB GDDR6 显存")
-                    .font(.oppoSans(10))
+                    .font(.oppoSans(9.5))
                     .foregroundColor(ThemeColors.textMuted)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
             .industrialCard(cornerRadius: 10)
             
             // ── 3. Memory Card (40 GB DDR4 - Real Breakdown)
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "memorychip")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.accentPurple)
-                        .frame(width: 14)
+                        .frame(width: 13)
                     Text("系统内存 MEM")
-                        .font(.oppoSans(12, weight: .semibold))
+                        .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     Text(String(format: "%.0f%%", monitor.snapshot.memUsage))
-                        .font(.sfSans(14, weight: .bold, design: .monospaced))
+                        .font(.sfSans(13, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.textPrimary)
                 }
                 
                 // Memory Bar (Electric Blue to Neon Purple Subtle Gradient)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
@@ -628,79 +629,79 @@ struct SystemPopupView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.memUsage / 100.0))), height: 4)
+                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.memUsage / 100.0))), height: 3.5)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 3.5)
                 
                 HStack {
                     Text(String(format: "已用 %.1f GB / 总共 %.0f GB", monitor.snapshot.memUsedGB, monitor.snapshot.memTotalGB))
-                        .font(.sfSans(10.5, weight: .medium, design: .monospaced))
+                        .font(.sfSans(10, weight: .medium, design: .monospaced))
                         .foregroundColor(ThemeColors.textSecondary)
                     Spacer()
                     HStack(spacing: 3) {
-                        Circle().fill(ThemeColors.accentGreen).frame(width: 4, height: 4)
+                        Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
                         Text("压力 23%")
-                            .font(.oppoSans(10, weight: .medium))
+                            .font(.oppoSans(9.5, weight: .medium))
                             .foregroundColor(ThemeColors.textMuted)
                     }
                 }
                 
                 // Categorized Memory Micro-Pills with Discrete Colored Dots
-                HStack(spacing: 5) {
-                    HStack(spacing: 2.5) {
-                        Circle().fill(ThemeColors.accentBlue).frame(width: 3.5, height: 3.5)
+                HStack(spacing: 4) {
+                    HStack(spacing: 2) {
+                        Circle().fill(ThemeColors.accentBlue).frame(width: 3, height: 3)
                         Text("App: 21.5 GB")
-                            .font(.sfSans(8.5, weight: .medium, design: .monospaced))
+                            .font(.sfSans(8, weight: .medium, design: .monospaced))
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.accentBlue)
                     }
-                    HStack(spacing: 2.5) {
-                        Circle().fill(ThemeColors.accentPurple).frame(width: 3.5, height: 3.5)
+                    HStack(spacing: 2) {
+                        Circle().fill(ThemeColors.accentPurple).frame(width: 3, height: 3)
                         Text("联动: 4.0 GB")
-                            .font(.sfSans(8.5, weight: .medium, design: .monospaced))
+                            .font(.sfSans(8, weight: .medium, design: .monospaced))
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.purpleLight)
                     }
-                    HStack(spacing: 2.5) {
-                        Circle().fill(ThemeColors.accentOrange).frame(width: 3.5, height: 3.5)
+                    HStack(spacing: 2) {
+                        Circle().fill(ThemeColors.accentOrange).frame(width: 3, height: 3)
                         Text("压缩: 5.1 GB")
-                            .font(.sfSans(8.5, design: .monospaced))
+                            .font(.sfSans(8, design: .monospaced))
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.textSecondary)
                     }
-                    HStack(spacing: 2.5) {
-                        Circle().fill(ThemeColors.textMuted).frame(width: 3.5, height: 3.5)
+                    HStack(spacing: 2) {
+                        Circle().fill(ThemeColors.textMuted).frame(width: 3, height: 3)
                         Text("可用: 9.4 GB")
-                            .font(.sfSans(8.5, design: .monospaced))
+                            .font(.sfSans(8, design: .monospaced))
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.textMuted)
                     }
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
             
             // ── 4. Storage SSD Card
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "internaldrive")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.accentBlue)
-                        .frame(width: 14)
+                        .frame(width: 13)
                     Text("内置存储 SSD")
-                        .font(.oppoSans(12, weight: .semibold))
+                        .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
                     Text(String(format: "%.0f%%", monitor.snapshot.diskUsage))
-                        .font(.sfSans(14, weight: .bold, design: .monospaced))
+                        .font(.sfSans(13, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.textPrimary)
                 }
                 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
@@ -709,80 +710,80 @@ struct SystemPopupView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.diskUsage / 100.0))), height: 4)
+                            .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.diskUsage / 100.0))), height: 3.5)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 3.5)
                 
                 HStack {
                     Text("Macintosh HD · APFS")
-                        .font(.oppoSans(10))
+                        .font(.oppoSans(9.5))
                         .foregroundColor(ThemeColors.textMuted)
                     Spacer()
                     Text(String(format: "已用 %.0f GB / 总共 %.0f GB", monitor.snapshot.diskUsedGB, monitor.snapshot.diskTotalGB))
-                        .font(.sfSans(10, weight: .medium, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                         .foregroundColor(ThemeColors.textSecondary)
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
             .industrialCard(cornerRadius: 10)
             
             // ── 5. Intel Desktop Power & Uptime Card (NO BATTERY MOCK!)
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 4.5) {
                 HStack {
                     Image(systemName: "desktopcomputer")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(ThemeColors.textSecondary)
-                        .frame(width: 14)
+                        .frame(width: 13)
                     Text("系统运行状态 · 台式机")
-                        .font(.oppoSans(12, weight: .semibold))
+                        .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
-                    HStack(spacing: 4) {
-                        Circle().fill(ThemeColors.accentGreen).frame(width: 4, height: 4)
+                    HStack(spacing: 3) {
+                        Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
                         Text("稳定直供")
-                            .font(.oppoSans(9.5, weight: .medium))
+                            .font(.oppoSans(9, weight: .medium))
                             .foregroundColor(ThemeColors.accentGreen)
                     }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1.5)
+                    .padding(.horizontal, 4.5)
+                    .padding(.vertical, 1)
                     .background(ThemeColors.matteCardSecondary)
                     .cornerRadius(3)
                 }
                 
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1.5) {
                         Text("供电方式")
-                            .font(.oppoSans(10))
+                            .font(.oppoSans(9))
                             .foregroundColor(ThemeColors.textMuted)
                         Text("交流电源 (AC Power)")
-                            .font(.oppoSans(11, weight: .medium))
+                            .font(.oppoSans(10, weight: .medium))
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                     Spacer()
-                    VStack(alignment: .center, spacing: 2) {
+                    VStack(alignment: .center, spacing: 1.5) {
                         Text("开机运行时间")
-                            .font(.oppoSans(10))
+                            .font(.oppoSans(9))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.uptime)
-                            .font(.sfSans(11, weight: .semibold, design: .monospaced))
+                            .font(.sfSans(10, weight: .semibold, design: .monospaced))
                             .foregroundColor(ThemeColors.textSecondary)
                     }
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: 1.5) {
                         Text("系统平均负载")
-                            .font(.oppoSans(10))
+                            .font(.oppoSans(9))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.loadAvg)
-                            .font(.sfSans(11, weight: .semibold, design: .monospaced))
+                            .font(.sfSans(10, weight: .semibold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 6)
             .industrialCard(cornerRadius: 10)
         }
     }
