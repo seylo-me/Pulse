@@ -460,8 +460,8 @@ struct SystemPopupView: View {
                         }
                     }
                     
-                    // Row 3: Direct Domestic Real IP (with city) + Local Intranet IP (local)
-                    HStack(spacing: 16) {
+                    // Row 3: Direct Domestic Real IP (Left) + Local Intranet IP (Right Aligned)
+                    HStack {
                         HStack(spacing: 5) {
                             Text(monitor.networkInfo.directIPv4)
                                 .font(.sfSans(9.5, weight: .medium, design: .monospaced))
@@ -480,13 +480,15 @@ struct SystemPopupView: View {
                             }
                         }
                         
+                        Spacer()
+                        
                         HStack(spacing: 4) {
+                            Text("Local")
+                                .font(.sfSans(8.5, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.5))
                             Text(monitor.networkInfo.localIPv4)
                                 .font(.sfSans(9, weight: .regular, design: .monospaced))
                                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
-                            Text("local")
-                                .font(.sfSans(8, weight: .regular, design: .monospaced))
-                                .foregroundColor(ThemeColors.textMuted.opacity(0.5))
                         }
                     }
                     .padding(.top, 1)
@@ -512,13 +514,16 @@ struct SystemPopupView: View {
                         }
                     }
                     
-                    HStack(spacing: 4) {
-                        Text(monitor.networkInfo.localIPv4)
-                            .font(.sfSans(9, weight: .regular, design: .monospaced))
-                            .foregroundColor(ThemeColors.textMuted.opacity(0.65))
-                        Text("local")
-                            .font(.sfSans(8, weight: .regular, design: .monospaced))
-                            .foregroundColor(ThemeColors.textMuted.opacity(0.5))
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text("Local")
+                                .font(.sfSans(8.5, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.5))
+                            Text(monitor.networkInfo.localIPv4)
+                                .font(.sfSans(9, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                        }
                     }
                     .padding(.top, 1)
                 }
