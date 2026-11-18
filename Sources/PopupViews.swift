@@ -439,9 +439,21 @@ struct SystemPopupView: View {
             VStack(alignment: .leading, spacing: 4) {
                 if monitor.networkInfo.isProxyActive {
                     // Row 1: Label
-                    Text("PROXY IP · 代理出口")
-                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(ThemeColors.accentPurple)
+                    HStack {
+                        Text("PROXY IP · 代理出口")
+                            .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(ThemeColors.accentPurple)
+                        Spacer()
+                        if monitor.isNetworkRefreshing {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .frame(width: 10, height: 10)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 8))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.45))
+                        }
+                    }
                     
                     // Row 2: Egress IP (Left) + Flag & Location (Right)
                     HStack(alignment: .firstTextBaseline) {
@@ -494,9 +506,21 @@ struct SystemPopupView: View {
                     .padding(.top, 1)
                 } else {
                     // Non-Proxy Direct Mode
-                    Text("PUBLIC IP · 公网出口")
-                        .font(.sfSans(8.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(ThemeColors.textMuted)
+                    HStack {
+                        Text("PUBLIC IP · 公网出口")
+                            .font(.sfSans(8.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(ThemeColors.textMuted)
+                        Spacer()
+                        if monitor.isNetworkRefreshing {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .frame(width: 10, height: 10)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 8))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.45))
+                        }
+                    }
                     
                     HStack(alignment: .firstTextBaseline) {
                         Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
@@ -531,6 +555,10 @@ struct SystemPopupView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 7.5)
             .industrialCard(cornerRadius: 10)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                monitor.fetchNetworkDetails(force: true)
+            }
             
             // Active Processes Card (Consistent Spacing & Height with Hardware)
             VStack(spacing: 4) {

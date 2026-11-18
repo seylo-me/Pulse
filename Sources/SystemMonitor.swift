@@ -3,6 +3,7 @@ import IOKit
 import IOKit.ps
 import AppKit
 import SystemConfiguration
+import Network
 
 class SystemMonitor: ObservableObject {
     @Published var selectedTab: PopupModeTab = .traffic
@@ -29,6 +30,7 @@ class SystemMonitor: ObservableObject {
     // Status Bar Items Active Flags (Mutual Observation)
     @Published var isSystemStatusItemActive: Bool = true
     @Published var isAIStatusItemActive: Bool = true
+    @Published var isNetworkRefreshing: Bool = false
     
     // Window Pin / Always On Top (置顶 / 固定浮窗)
     @Published var isPinned: Bool = false {
@@ -38,12 +40,21 @@ class SystemMonitor: ObservableObject {
     }
     var onPinChanged: ((Bool) -> Void)?
     
+    // Automatic Network Routing Observation (Detects VPN connects/switches instantly)
+    private let pathMonitor = NWPathMonitor()
+    private let monitorQueue = DispatchQueue(label: "com.sulee.pulse.networkMonitor")
+    private var lastNetworkFetchTime: Date = .distantPast
+    private var isFetchingNetwork: Bool = false
+    
     // Panel visibility flag for adaptive power throttling
     var isPanelVisible: Bool = false {
         didSet {
             if isPanelVisible {
                 // Immediate full update when user opens panel
                 refreshFull()
+                if Date().timeIntervalSince(lastNetworkFetchTime) > 3.0 {
+                    fetchNetworkDetails()
+                }
             }
         }
     }
@@ -81,15 +92,27 @@ class SystemMonitor: ObservableObject {
         self.spectrumBars = initialBars
         
         refreshFull()
-        fetchNetworkDetails()
+        fetchNetworkDetails(force: true)
+        
+        // Listen to system network routing changes (VPN connects/disconnects/switches)
+        pathMonitor.pathUpdateHandler = { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.fetchNetworkDetails(force: true)
+            }
+        }
+        pathMonitor.start(queue: monitorQueue)
         
         // Adaptive telemetry timer:
         // When panel is closed: runs lightweight update (net speed + basic CPU/MEM for menu bar)
-        // When panel is open: runs full telemetry with spectrum bars and process items
+        // When panel is open: runs full telemetry with spectrum bars and periodic network refresh
         timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             if self.isPanelVisible {
                 self.refreshFull()
+                // Auto refresh network details every 8s while panel is actively inspected
+                if Date().timeIntervalSince(self.lastNetworkFetchTime) > 8.0 {
+                    self.fetchNetworkDetails()
+                }
             } else {
                 self.refreshLightweight()
             }
@@ -99,6 +122,7 @@ class SystemMonitor: ObservableObject {
     
     deinit {
         timer?.invalidate()
+        pathMonitor.cancel()
     }
     
     // MARK: - Lightweight Refresh (Menu Bar only, near 0% CPU footprint)
@@ -462,24 +486,29 @@ class SystemMonitor: ObservableObject {
     }
     
     // MARK: - Network Details (IP, SSID, Proxy & Direct Real IP Detection)
-    private func fetchNetworkDetails() {
-        DispatchQueue.global(qos: .background).async { [weak self] in
+    func fetchNetworkDetails(force: Bool = false) {
+        if isFetchingNetwork && !force { return }
+        isFetchingNetwork = true
+        DispatchQueue.main.async { self.isNetworkRefreshing = true }
+        self.lastNetworkFetchTime = Date()
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             let localIP = self.getLocalIPAddress()
             let realSSID = self.getRealWiFiSSID()
             
-            DispatchQueue.main.async {
-                self.networkInfo.localIPv4 = localIP
-                self.networkInfo.ssid = realSSID
-            }
+            let timestamp = Int(Date().timeIntervalSince1970)
             
             // 1. Query Egress/Public IP (typically goes through Proxy if configured)
             var publicIP = ""
             var publicCountry = ""
             var publicCity = ""
-            if let url = URL(string: "https://ipinfo.io/json") {
+            
+            // Primary: ipinfo.io with cache bypass
+            if let url = URL(string: "https://ipinfo.io/json?t=\(timestamp)") {
                 var req = URLRequest(url: url)
-                req.timeoutInterval = 3.0
+                req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                req.timeoutInterval = 2.5
                 if let data = URLSession.shared.synchronousData(with: req),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     publicIP = (json["ip"] as? String) ?? ""
@@ -488,15 +517,28 @@ class SystemMonitor: ObservableObject {
                 }
             }
             
-            // 2. Query Direct/Domestic Real IP (myip.ipip.net / ip-api)
+            // Fallback: api.ip.sb/geoip if ipinfo.io failed
+            if publicIP.isEmpty, let sbUrl = URL(string: "https://api.ip.sb/geoip") {
+                var req = URLRequest(url: sbUrl)
+                req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                req.timeoutInterval = 2.5
+                if let data = URLSession.shared.synchronousData(with: req),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    publicIP = (json["ip"] as? String) ?? ""
+                    publicCountry = (json["country_code"] as? String) ?? ""
+                    publicCity = (json["city"] as? String) ?? ""
+                }
+            }
+            
+            // 2. Query Direct/Domestic Real IP (myip.ipip.net)
             var directIP = ""
             var directLoc = ""
-            if let directUrl = URL(string: "https://myip.ipip.net") {
+            if let directUrl = URL(string: "https://myip.ipip.net?t=\(timestamp)") {
                 var req = URLRequest(url: directUrl)
-                req.timeoutInterval = 3.0
+                req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                req.timeoutInterval = 2.5
                 if let data = URLSession.shared.synchronousData(with: req),
                    let str = String(data: data, encoding: .utf8) {
-                    // Extract IP: "当前 IP：139.227.64.88  来自于：中国 上海 上海  联通"
                     if let range = str.range(of: #"\b(?:\d{1,3}\.){3}\d{1,3}\b"#, options: .regularExpression) {
                         directIP = String(str[range])
                     }
@@ -511,6 +553,11 @@ class SystemMonitor: ObservableObject {
             }
             
             DispatchQueue.main.async {
+                self.isFetchingNetwork = false
+                self.isNetworkRefreshing = false
+                self.networkInfo.localIPv4 = localIP
+                self.networkInfo.ssid = realSSID
+                
                 if !publicIP.isEmpty {
                     self.networkInfo.publicIPv4 = publicIP
                     self.networkInfo.countryFlag = self.countryFlagEmoji(from: publicCountry)
