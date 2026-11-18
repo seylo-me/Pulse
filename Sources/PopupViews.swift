@@ -51,11 +51,38 @@ func loadPulseLogo() -> NSImage? {
     return NSImage(contentsOfFile: cwdFallback)
 }
 
+enum PulseAssets {
+    static let logoImage: NSImage? = loadPulseLogo()
+}
+
+// MARK: - Dedicated Exit/Power Button (Self-Contained Hover State to Avoid Parent Re-renders)
+struct ExitPowerButton: View {
+    var onExit: () -> Void
+    var tooltip: String = "退出"
+    @State private var isHovered: Bool = false
+    
+    var body: some View {
+        Button(action: onExit) {
+            Image(systemName: "power")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(isHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disableFocusRing()
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .animation(.easeInOut(duration: 0.15), value: isHovered)
+        .help(tooltip)
+    }
+}
+
 // MARK: - 1. System Popup View (Dedicated Traffic & Hardware - Zero AI Clutter!)
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
     @Namespace private var systemTabNamespace
-    @State private var isCloseHovered: Bool = false
     
     var onOpenAI: () -> Void = {}
     var onClose: () -> Void = {}
@@ -121,16 +148,16 @@ struct SystemPopupView: View {
             PulseBrandBadge()
             
             VStack(alignment: .leading, spacing: 0) {
-                // Row 1: Pulse logo (Enlarged SVG with crisp top-alignment)
+                // Row 1: Pulse logo (Refined compact SVG)
                 HStack(alignment: .center, spacing: 6) {
-                    if let logo = loadPulseLogo() {
+                    if let logo = PulseAssets.logoImage {
                         Image(nsImage: logo)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 53.5, height: 14.5)
+                            .frame(width: 44, height: 12)
                     } else {
                         Text("PULSE")
-                            .font(.sfSans(14, weight: .bold, design: .monospaced))
+                            .font(.sfSans(12, weight: .bold, design: .monospaced))
                             .tracking(-0.3)
                             .foregroundColor(ThemeColors.textPrimary)
                     }
@@ -158,28 +185,14 @@ struct SystemPopupView: View {
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                 }
-                .offset(y: 5.5)
+                .offset(y: 4.5)
             }
             .frame(height: 32)
             
             Spacer(minLength: 8)
             
-            // Action Button: Bare Power/Close SVG glyph (No outer box, soft gray -> vibrant red on hover)
-            Button(action: onExit) {
-                Image(systemName: "power")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disableFocusRing()
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    isCloseHovered = hovering
-                }
-            }
-            .help("退出系统监控状态栏")
+            // Action Button: Bare Power/Close SVG glyph (Self-contained hover state)
+            ExitPowerButton(onExit: onExit, tooltip: "退出系统监控状态栏")
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
@@ -935,7 +948,6 @@ struct SystemPopupView: View {
 struct AIPopupView: View {
     @ObservedObject var quotaMgr: QuotaManager
     @Namespace private var aiTabNamespace
-    @State private var isCloseHovered: Bool = false
     
     var onOpenSystem: () -> Void = {}
     var onClose: () -> Void = {}
@@ -1036,22 +1048,8 @@ struct AIPopupView: View {
             
             Spacer(minLength: 4)
             
-            // ── Dedicated Exit AI Button (Bare SVG glyph, Gray initially, Glowing Red on hover)
-            Button(action: onExit) {
-                Image(systemName: "power")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(isCloseHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disableFocusRing()
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    isCloseHovered = hovering
-                }
-            }
-            .help("退出 AI 状态栏")
+            // ── Dedicated Exit AI Button (Self-Contained Hover State)
+            ExitPowerButton(onExit: onExit, tooltip: "退出 AI 状态栏")
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
