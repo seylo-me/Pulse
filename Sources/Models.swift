@@ -21,21 +21,15 @@ enum SystemTab: Int, CaseIterable {
     }
 }
 
-// MARK: - Independent AI Selection (Only 1 shown on Status Bar, Selectable in AI Panel)
+// MARK: - Independent AI Selection (Real Live Monitored AI Providers)
 enum ActiveAISource: String, CaseIterable, Codable {
     case antigravity = "antigravity"
     case codex = "codex"
-    case claude = "claude"
-    case grok = "grok"
-    case deepseek = "deepseek"
     
     var title: String {
         switch self {
         case .antigravity: return "Antigravity"
         case .codex: return "Codex"
-        case .claude: return "Claude"
-        case .grok: return "Grok"
-        case .deepseek: return "DeepSeek"
         }
     }
     
@@ -43,9 +37,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return "Google AI"
         case .codex: return "OpenAI"
-        case .claude: return "Anthropic"
-        case .grok: return "xAI"
-        case .deepseek: return "DeepSeek"
         }
     }
     
@@ -53,9 +44,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return "sparkles"
         case .codex: return "bolt.fill"
-        case .claude: return "asterisk"
-        case .grok: return "slash.circle"
-        case .deepseek: return "circle.hexagongrid.fill"
         }
     }
     
@@ -63,17 +51,11 @@ enum ActiveAISource: String, CaseIterable, Codable {
         switch self {
         case .antigravity: return 0xA44BFD // Vibrant Purple
         case .codex: return 0x38BDF8       // Codex Sky Blue
-        case .claude: return 0xD97706      // Claude Terracotta / Amber
-        case .grok: return 0xF43F5E        // Grok Crimson / Red
-        case .deepseek: return 0x0EA5E9    // DeepSeek Electric Cyan
         }
     }
     
     var isConfigured: Bool {
-        switch self {
-        case .antigravity, .codex: return true
-        case .claude, .grok, .deepseek: return false
-        }
+        return true
     }
 }
 

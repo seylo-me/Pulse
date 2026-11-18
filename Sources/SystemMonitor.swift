@@ -10,12 +10,12 @@ class SystemMonitor: ObservableObject {
     @Published var snapshot: SystemSnapshot = .initial
     @Published var spectrumBars: [SpectrumBar] = []
     @Published var networkInfo: NetworkInfo = NetworkInfo(
-        ssid: "TP-LINK_187F",
-        localIPv4: "192.168.0.103",
-        publicIPv4: "203.96.238.210",
-        publicIPv6: "2a10:483:201::a007",
-        countryFlag: "🇯🇵",
-        gateway: "192.168.0.1"
+        ssid: "Wi-Fi (检测中...)",
+        localIPv4: "127.0.0.1",
+        publicIPv4: "--",
+        publicIPv6: "--",
+        countryFlag: "🌐",
+        gateway: "--"
     )
     @Published var topProcesses: [ProcessItem] = [
         ProcessItem(name: "Antigravity", iconSystemName: "sparkles", uploadSpeed: "42 K", downloadSpeed: "38 K", isHighlighted: true),
@@ -386,29 +386,41 @@ class SystemMonitor: ObservableObject {
     // MARK: - Network Details (IP, SSID)
     private func fetchNetworkDetails() {
         DispatchQueue.global(qos: .background).async { [weak self] in
-            let localIP = self?.getLocalIPAddress() ?? "192.168.0.103"
-            let realSSID = self?.getRealWiFiSSID() ?? "TP-LINK_187F"
+            let localIP = self?.getLocalIPAddress() ?? "127.0.0.1"
+            let realSSID = self?.getRealWiFiSSID() ?? "已连接网络"
             
             DispatchQueue.main.async {
                 self?.networkInfo.localIPv4 = localIP
                 self?.networkInfo.ssid = realSSID
             }
+            
+            // Asynchronously query public IP if online
+            if let url = URL(string: "https://api.ipify.org"),
+               let ipStr = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !ipStr.isEmpty {
+                DispatchQueue.main.async {
+                    self?.networkInfo.publicIPv4 = ipStr
+                }
+            }
         }
     }
     
     private func getRealWiFiSSID() -> String {
-        // First try DynamicStore
-        if let store = SCDynamicStoreCreate(nil, "SysBarSSID" as CFString, nil, nil),
-           let dict = SCDynamicStoreCopyValue(store, "State:/Network/Interface/en1/AirPort" as CFString) as? [String: Any],
-           let ssid = dict["SSID_STR"] as? String, !ssid.isEmpty {
-            return ssid
+        // First try DynamicStore for common interfaces (en0, en1)
+        if let store = SCDynamicStoreCreate(nil, "SysBarSSID" as CFString, nil, nil) {
+            for iface in ["en0", "en1", "en2"] {
+                if let dict = SCDynamicStoreCopyValue(store, "State:/Network/Interface/\(iface)/AirPort" as CFString) as? [String: Any],
+                   let ssid = dict["SSID_STR"] as? String, !ssid.isEmpty {
+                    return ssid
+                }
+            }
         }
-        return "TP-LINK_187F"
+        return "以太网 / Wi-Fi"
     }
     
     private func getLocalIPAddress() -> String {
         var addrs: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&addrs) == 0 else { return "192.168.0.103" }
+        guard getifaddrs(&addrs) == 0 else { return "127.0.0.1" }
         defer { freeifaddrs(addrs) }
         var ptr = addrs
         while let cur = ptr {
@@ -425,7 +437,7 @@ class SystemMonitor: ObservableObject {
             }
             ptr = cur.pointee.ifa_next
         }
-        return "192.168.0.103"
+        return "127.0.0.1"
     }
     
     private func formatBytes(_ bytes: UInt64) -> String {

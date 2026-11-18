@@ -3,10 +3,11 @@ import SwiftUI
 
 class QuotaManager: ObservableObject {
     @Published var antigravityProfile: AIProfileQuota
-    @Published var claudeProfile: AIProfileQuota
     @Published var codexProfile: AIProfileQuota
-    @Published var grokProfile: AIProfileQuota
-    @Published var deepseekProfile: AIProfileQuota
+    
+    private var rawAccountName: String = ""
+    private var rawAccountEmail: String = ""
+    private var rawAccountPlan: String = "Google AI Pro"
     
     // Independent AI Selection: which one to view in AI Window, and which ONE to display in Status Bar!
     @Published var selectedAITab: ActiveAISource = .antigravity
@@ -15,9 +16,9 @@ class QuotaManager: ObservableObject {
     
     // Status Bar Values for the active AI capsule
     @Published var antigravityModelName: String = "Antigravity"
-    @Published var antigravity7dStr: String = "99%"
-    @Published var antigravity5hStr: String = "95%"
-    @Published var antigravityCapsuleText: String = "Antigravity · 7d: 99% · 5h: 95%"
+    @Published var antigravity7dStr: String = "100%"
+    @Published var antigravity5hStr: String = "100%"
+    @Published var antigravityCapsuleText: String = "Antigravity · 7d: 100% · 5h: 100%"
     
     // Codex Quota (Live ChatGPT Plus / Wham Rate Limits)
     @Published var isCodexExhausted: Bool = false
@@ -56,10 +57,7 @@ class QuotaManager: ObservableObject {
     func profile(for source: ActiveAISource) -> AIProfileQuota {
         switch source {
         case .antigravity: return antigravityProfile
-        case .claude: return claudeProfile
         case .codex: return codexProfile
-        case .grok: return grokProfile
-        case .deepseek: return deepseekProfile
         }
     }
     
@@ -67,14 +65,8 @@ class QuotaManager: ObservableObject {
         switch source {
         case .antigravity:
             return antigravityCapsuleText
-        case .claude:
-            return "Claude · 7d: 88% · 5h: 92%"
         case .codex:
             return codexCapsuleText
-        case .grok:
-            return "Grok · 2h: 80% · xAI"
-        case .deepseek:
-            return "DeepSeek · 100% · R1"
         }
     }
     
@@ -85,166 +77,22 @@ class QuotaManager: ObservableObject {
     }
     
     init() {
-        // Antigravity (反重力) - Exactly matching user's real Models & Usage (99% Weekly, 95% 5-Hour remaining)
         self.antigravityProfile = AIProfileQuota(
-            brandName: "Antigravity (反重力)",
-            accountEmail: "Li Su (suli.source@gmail.com)",
-            accountType: "Google AI Pro · Personal Google account",
+            brandName: "Antigravity",
+            accountEmail: "检测中...",
+            accountType: "Google AI · 本机实时配额",
             isActive: true,
             lastRefreshed: "刚刚",
-            categories: [
-                ModelCategoryQuota(
-                    categoryName: "Gemini Models",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 99.0,
-                            resetText: "将于 6天 23小时后完全刷新 (已用微量)",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "5h",
-                            percent: 95.0,
-                            resetText: "将于 4小时 41分钟后完全刷新 (已用微量)",
-                            isExhausted: false
-                        )
-                    ]
-                ),
-                ModelCategoryQuota(
-                    categoryName: "Claude and GPT models",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "5h",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
+            categories: []
         )
         
-        // Claude Quota (Anthropic - Reserved / Active Profile)
-        self.claudeProfile = AIProfileQuota(
-            brandName: "Anthropic Claude",
-            accountEmail: "Li Su (suli.source@gmail.com)",
-            accountType: "Claude Pro · personal account",
-            isActive: true,
-            lastRefreshed: "刚刚",
-            categories: [
-                ModelCategoryQuota(
-                    categoryName: "Claude 3.7 Sonnet & 3.5 Haiku",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 88.0,
-                            resetText: "将于 5天 18小时后完全刷新",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "5h",
-                            percent: 92.0,
-                            resetText: "将于 3小时 40分钟后完全刷新",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
-        )
-        
-        // Codex Quota - Real ChatGPT Plus Account with Live Wham Rate Limits
         self.codexProfile = AIProfileQuota(
             brandName: "OpenAI Codex",
-            accountEmail: "Li Su (suli.source@gmail.com)",
-            accountType: "ChatGPT Plus · Personal account",
+            accountEmail: "检测中...",
+            accountType: "ChatGPT Plus · 本机实时配额",
             isActive: true,
             lastRefreshed: "刚刚",
-            categories: [
-                ModelCategoryQuota(
-                    categoryName: "GPT-5.6 & Codex Models",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "5h",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        )
-                    ]
-                ),
-                ModelCategoryQuota(
-                    categoryName: "Reasoning Models (o1 / o3)",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "1d",
-                            percent: 100.0,
-                            resetText: "每日限制未超额",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
-        )
-        
-        // Grok Quota (xAI - Reserved / Active Profile)
-        self.grokProfile = AIProfileQuota(
-            brandName: "xAI Grok",
-            accountEmail: "Li Su (@sulisource)",
-            accountType: "SuperGrok · X Premium+",
-            isActive: true,
-            lastRefreshed: "刚刚",
-            categories: [
-                ModelCategoryQuota(
-                    categoryName: "Grok 3 & Grok 2 (xAI Engine)",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "2h",
-                            percent: 80.0,
-                            resetText: "将于 1小时 25分钟后刷新",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
-        )
-        
-        // DeepSeek Quota (Reserved Profile)
-        self.deepseekProfile = AIProfileQuota(
-            brandName: "DeepSeek",
-            accountEmail: "Li Su (suli.source@gmail.com)",
-            accountType: "DeepSeek-V3 / R1 · Developer API",
-            isActive: true,
-            lastRefreshed: "刚刚",
-            categories: [
-                ModelCategoryQuota(
-                    categoryName: "DeepSeek-R1 (深度推理)",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "每日",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余未消耗",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
+            categories: []
         )
         
         if let saved = UserDefaults.standard.string(forKey: "sysbar_active_status_ai"),
@@ -340,27 +188,34 @@ class QuotaManager: ObservableObject {
         if let data = FileManager.default.contents(atPath: appStoragePath),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let userEmail = (json["agy.onboarding.lastLoginUsername"] as? String) ?? (json["jetski.onboarding.lastLoginUsername"] as? String), !userEmail.isEmpty {
-            self.antigravityProfile.accountEmail = "Li Su (\(userEmail))"
+            self.rawAccountEmail = userEmail
+            self.antigravityProfile.accountEmail = userEmail
+            self.antigravityProfile.isActive = true
         }
         
         // 2. Read ~/.gemini/antigravity/usage.json if available
         let agyUsagePath = NSHomeDirectory() + "/.gemini/antigravity/usage.json"
         if let data = FileManager.default.contents(atPath: agyUsagePath),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let email = json["account_email"] as? String, !email.isEmpty {
-                let name = (json["account_name"] as? String) ?? "Li Su"
-                self.antigravityProfile.accountEmail = "\(name) (\(email))"
+            let email = (json["account_email"] as? String) ?? self.rawAccountEmail
+            let name = (json["account_name"] as? String) ?? self.rawAccountName
+            if !email.isEmpty {
+                self.rawAccountEmail = email
+                self.rawAccountName = name
+                self.antigravityProfile.accountEmail = name.isEmpty ? email : "\(name) (\(email))"
+                self.antigravityProfile.isActive = true
             }
             if let plan = json["plan"] as? String, !plan.isEmpty {
+                self.rawAccountPlan = plan
                 self.antigravityProfile.accountType = "\(plan) · Personal Google account"
             }
             if let model = json["model"] as? String {
                 self.antigravityModelName = model
             }
-            let g7d = (json["gemini_7d_percent"] as? Double) ?? (json["7d_percent"] as? Double) ?? 99.0
-            let g7dReset = (json["gemini_7d_reset"] as? String) ?? (json["7d_reset"] as? String) ?? "将于 6天 23小时后完全刷新 (已用微量)"
-            let g5h = (json["gemini_5h_percent"] as? Double) ?? (json["5h_percent"] as? Double) ?? 95.0
-            let g5hReset = (json["gemini_5h_reset"] as? String) ?? (json["5h_reset"] as? String) ?? "将于 4小时 41分钟后完全刷新 (已用微量)"
+            let g7d = (json["gemini_7d_percent"] as? Double) ?? (json["7d_percent"] as? Double) ?? 100.0
+            let g7dReset = (json["gemini_7d_reset"] as? String) ?? (json["7d_reset"] as? String) ?? "周期配额充足"
+            let g5h = (json["gemini_5h_percent"] as? Double) ?? (json["5h_percent"] as? Double) ?? 100.0
+            let g5hReset = (json["gemini_5h_reset"] as? String) ?? (json["5h_reset"] as? String) ?? "周期配额充足"
             
             let cg7d = (json["claude_gpt_7d_percent"] as? Double) ?? (json["claude_gpt_7d"] as? Double) ?? 100.0
             let cg7dReset = (json["claude_gpt_7d_reset"] as? String) ?? "配额充足 · 100% 剩余未消耗"
@@ -406,10 +261,12 @@ class QuotaManager: ObservableObject {
                     ]
                 )
             ]
-        } else {
-            self.antigravityModelName = "Antigravity"
-            self.antigravity7dStr = "99%"
-            self.antigravity5hStr = "95%"
+        }
+        
+        if self.antigravityProfile.accountEmail == "检测中..." {
+            self.antigravityProfile.accountEmail = "未登录 Google 账户"
+            self.antigravityProfile.accountType = "请在 Antigravity 中登录"
+            self.antigravityProfile.isActive = false
         }
         self.antigravityCapsuleText = "Antigravity · 7d: \(antigravity7dStr) · 5h: \(antigravity5hStr)"
         
@@ -426,15 +283,25 @@ class QuotaManager: ObservableObject {
                 b64 = b64.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
                 if let payloadData = Data(base64Encoded: b64),
                    let claims = try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any] {
-                    let email = (claims["email"] as? String) ?? "suli.source@gmail.com"
-                    let name = (claims["name"] as? String) ?? "Li Su"
-                    self.codexProfile.accountEmail = "\(name) (\(email))"
+                    let email = claims["email"] as? String
+                    let name = claims["name"] as? String
+                    if let em = email, !em.isEmpty {
+                        let displayName = (name != nil && !name!.isEmpty) ? name! : em.components(separatedBy: "@").first ?? "User"
+                        self.codexProfile.accountEmail = "\(displayName) (\(em))"
+                        self.codexProfile.isActive = true
+                    }
                     if let authInfo = claims["https://api.openai.com/auth"] as? [String: Any],
                        let plan = authInfo["chatgpt_plan_type"] as? String {
                         self.codexProfile.accountType = "ChatGPT \(plan.capitalized) · Personal account"
                     }
                 }
             }
+        }
+        
+        if self.codexProfile.accountEmail == "检测中..." {
+            self.codexProfile.accountEmail = "未登录 OpenAI 账户"
+            self.codexProfile.accountType = "请在终端执行 codex 登录"
+            self.codexProfile.isActive = false
         }
         
         // 4. Read ~/.config/codex/usage.json if available
@@ -620,11 +487,9 @@ class QuotaManager: ObservableObject {
                 self.onActiveAIChanged?()
                 
                 // Write back fresh live values to ~/.gemini/antigravity/usage.json without triggering loop
-                let usageDict: [String: Any] = [
-                    "account_name": "Li Su",
-                    "account_email": "suli.source@gmail.com",
-                    "plan": "Google AI Pro",
-                    "model": "Antigravity",
+                var usageDict: [String: Any] = [
+                    "plan": self.rawAccountPlan,
+                    "model": self.antigravityModelName,
                     "gemini_7d_percent": g7dDisplayInt,
                     "gemini_7d_reset": g7dReset,
                     "gemini_5h_percent": g5hDisplayInt,
@@ -634,6 +499,12 @@ class QuotaManager: ObservableObject {
                     "claude_gpt_5h_percent": Int(cg5h),
                     "claude_gpt_5h_reset": cg5hReset
                 ]
+                if !self.rawAccountName.isEmpty {
+                    usageDict["account_name"] = self.rawAccountName
+                }
+                if !self.rawAccountEmail.isEmpty {
+                    usageDict["account_email"] = self.rawAccountEmail
+                }
                 if let uData = try? JSONSerialization.data(withJSONObject: usageDict, options: [.prettyPrinted]) {
                     self.isWritingUsageCache = true
                     let uPath = NSHomeDirectory() + "/.gemini/antigravity/usage.json"

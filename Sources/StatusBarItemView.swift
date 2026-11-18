@@ -174,7 +174,7 @@ class AIStatusBarView: NSView {
     var onRightClicked: (() -> Void)?
     
     // Real software icons (loaded from bundle or fallback workspace path)
-    private static func loadResourceImage(named name: String) -> NSImage? {
+    static func loadResourceImage(named name: String) -> NSImage? {
         if let path = Bundle.main.path(forResource: name, ofType: "png"),
            let img = NSImage(contentsOfFile: path) {
             return img
@@ -187,8 +187,12 @@ class AIStatusBarView: NSView {
         if let img = NSImage(contentsOfFile: bundleResources) {
             return img
         }
-        let fallback = "/Users/sulee/.gemini/antigravity/scratch/SysBar/Resources/\(name).png"
-        return NSImage(contentsOfFile: fallback)
+        // Development fallback: relative to current working directory
+        let cwdFallback = FileManager.default.currentDirectoryPath + "/Resources/\(name).png"
+        if let img = NSImage(contentsOfFile: cwdFallback) {
+            return img
+        }
+        return nil
     }
     
     private lazy var agyIcon: NSImage? = {
@@ -266,12 +270,6 @@ class AIStatusBarView: NSView {
             } else {
                 drawText("⚡", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x38BDF8))
             }
-        case .claude:
-            drawText("✳", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10.5, weight: .bold), color: NSColor(hex: 0xD97706))
-        case .grok:
-            drawText("𝕏", at: NSPoint(x: 5.5, y: 3.5), font: NSFont.systemFont(ofSize: 9.5, weight: .heavy), color: NSColor(hex: 0xF43F5E))
-        case .deepseek:
-            drawText("◎", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x0EA5E9))
         }
         
         // Draw text

@@ -47,8 +47,8 @@ func loadPulseLogo() -> NSImage? {
     if let img = NSImage(contentsOfFile: bundleResources) {
         return img
     }
-    let fallback = "/Users/sulee/.gemini/antigravity/scratch/SysBar/Resources/pulse_logo.svg"
-    return NSImage(contentsOfFile: fallback)
+    let cwdFallback = FileManager.default.currentDirectoryPath + "/Resources/pulse_logo.svg"
+    return NSImage(contentsOfFile: cwdFallback)
 }
 
 // MARK: - 1. System Popup View (Dedicated Traffic & Hardware - Zero AI Clutter!)
@@ -469,7 +469,7 @@ struct SystemPopupView: View {
             .padding(.vertical, 11)
             .industrialCard()
             
-            // Wi-Fi Card (Real Detected SSID: TP-LINK_187F)
+            // Wi-Fi Card (Real Dynamically Detected SSID)
             HStack(spacing: 10) {
                 Image(systemName: "wifi")
                     .font(.system(size: 13, weight: .semibold))
@@ -1228,16 +1228,6 @@ struct AIPopupView: View {
                             
                             Text(source.title)
                                 .font(.sfSans(11, weight: isSelected ? .semibold : .regular))
-                            
-                            if !source.isConfigured {
-                                Text("预留")
-                                    .font(.pingFangSC(7.5, weight: .regular))
-                                    .foregroundColor(Color.white.opacity(0.50))
-                                    .padding(.horizontal, 3.5)
-                                    .padding(.vertical, 0.8)
-                                    .background(Color.white.opacity(0.08))
-                                    .clipShape(Capsule())
-                            }
                         }
                         .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.55))
                         .padding(.horizontal, 10.5)
@@ -1440,12 +1430,8 @@ struct AIProfileQuotaCardView: View {
             // ── Layer 1: Account Identity & Status Bar Pinning Card
             accountCard
             
-            // ── Layer 2: Model Quota Gauges OR Reserved Engine Slot
-            if source.isConfigured {
-                quotasCard
-            } else {
-                reservedSlotCard
-            }
+            // ── Layer 2: Model Quota Gauges
+            quotasCard
             
             // ── Layer 3: Storage & Local Telemetry Origin Card
             configStorageCard
@@ -1468,13 +1454,13 @@ struct AIProfileQuotaCardView: View {
                         )
                     
                     if source == .antigravity,
-                       let img = NSImage(contentsOfFile: "/Users/sulee/.gemini/antigravity/scratch/SysBar/Resources/Antigravity.png") {
+                       let img = AIStatusBarView.loadResourceImage(named: "Antigravity") {
                         Image(nsImage: img)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 18, height: 18)
                     } else if source == .codex,
-                              let img = NSImage(contentsOfFile: "/Users/sulee/.gemini/antigravity/scratch/SysBar/Resources/Codex.png") {
+                              let img = AIStatusBarView.loadResourceImage(named: "Codex") {
                         Image(nsImage: img)
                             .resizable()
                             .scaledToFit()
@@ -1692,120 +1678,6 @@ struct AIProfileQuotaCardView: View {
         )
     }
     
-    // MARK: - Layer 2 (Alternative): Reserved Provider Connection Slot
-    private var reservedSlotCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(Color(hex: source.accentHex).opacity(0.12))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7)
-                                .stroke(Color(hex: source.accentHex).opacity(0.35), lineWidth: 0.8)
-                        )
-                    Image(systemName: source.iconSystemName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: source.accentHex))
-                }
-                
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("\(source.title) Telemetry Slot")
-                        .font(.sfSans(11, weight: .bold))
-                        .foregroundColor(ThemeColors.textPrimary)
-                    Text("架构预留 · 即插即用")
-                        .font(.oppoSans(8.5, weight: .medium))
-                        .foregroundColor(ThemeColors.textMuted)
-                }
-                
-                Spacer()
-                
-                Text("待连接")
-                    .font(.sfSans(8.5, weight: .semibold))
-                    .foregroundColor(Color(hex: source.accentHex))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2.5)
-                    .background(Color(hex: source.accentHex).opacity(0.12))
-                    .cornerRadius(4)
-            }
-            
-            Text(reservedDescription(for: source))
-                .font(.oppoSans(9, weight: .regular))
-                .foregroundColor(ThemeColors.textSecondary)
-                .lineSpacing(2.5)
-            
-            HStack(spacing: 8) {
-                Button(action: {
-                    let dir = NSHomeDirectory() + "/.gemini/antigravity"
-                    NSWorkspace.shared.open(URL(fileURLWithPath: dir))
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "key.fill")
-                            .font(.system(size: 8.5))
-                        Text("配置 API 凭据")
-                            .font(.sfSans(9, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(ThemeColors.matteCardTertiary)
-                    .cornerRadius(5)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(ThemeColors.hairlineBorderHighlight, lineWidth: 0.8)
-                    )
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                
-                Button(action: {
-                    let urlStr: String
-                    switch source {
-                    case .claude: urlStr = "https://console.anthropic.com"
-                    case .grok: urlStr = "https://x.ai/api"
-                    case .deepseek: urlStr = "https://platform.deepseek.com"
-                    default: urlStr = "https://antigravity.google"
-                    }
-                    if let url = URL(string: urlStr) {
-                        NSWorkspace.shared.open(url)
-                    }
-                }) {
-                    Text("控制台 ↗")
-                        .font(.sfSans(9, weight: .medium))
-                        .foregroundColor(ThemeColors.textMuted)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.04))
-                        .cornerRadius(5)
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-            }
-        }
-        .padding(11)
-        .background(
-            RoundedRectangle(cornerRadius: 11)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 11)
-                        .strokeBorder(ThemeColors.hairlineBorder, lineWidth: 0.8)
-                )
-        )
-    }
-    
-    private func reservedDescription(for source: ActiveAISource) -> String {
-        switch source {
-        case .claude:
-            return "已预留 Anthropic Claude 3.7 Sonnet / Opus 周期配额监控。支持网页端 Session Token 及 Console API 速率限制自动轮询。"
-        case .grok:
-            return "已预留 xAI Grok 2 & Grok 3 接口配额监控。支持 API Key 余额检测与速率限制（Rate Limits）实时解析。"
-        case .deepseek:
-            return "已预留 DeepSeek V3 / R1 深度思考推理模型额度监控。支持官方开放平台 API 账户余额及并发阈值监测。"
-        default:
-            return "已预留多模型配额扩展插槽，支持自定义 JSON 规则与 API 端点同步。"
-        }
-    }
-    
     // MARK: - Layer 3: Storage & Local Telemetry Origin
     private var configStorageCard: some View {
         HStack {
@@ -1836,9 +1708,6 @@ struct AIProfileQuotaCardView: View {
         switch source {
         case .antigravity: return "~/.gemini/antigravity/usage.json"
         case .codex: return "~/.codex/auth.json"
-        case .claude: return "~/.claude/settings.json"
-        case .grok: return "~/.grok/credentials.json"
-        case .deepseek: return "~/.deepseek/config.json"
         }
     }
     
@@ -1846,9 +1715,6 @@ struct AIProfileQuotaCardView: View {
         switch source {
         case .antigravity: return NSHomeDirectory() + "/.gemini/antigravity"
         case .codex: return NSHomeDirectory() + "/.codex"
-        case .claude: return NSHomeDirectory() + "/.claude"
-        case .grok: return NSHomeDirectory() + "/.grok"
-        case .deepseek: return NSHomeDirectory() + "/.deepseek"
         }
     }
     

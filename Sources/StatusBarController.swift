@@ -578,13 +578,10 @@ class StatusBarController: NSObject {
             }
         }
         
-        // 5. Snapshot AI Tabs (Antigravity, Codex, Claude, Grok, DeepSeek)
+        // 5. Snapshot AI Tabs (Real Monitored Models: Antigravity & Codex)
         let aiTabs: [(ActiveAISource, String)] = [
             (.antigravity, "tab_antigravity_7d_5h.png"),
-            (.codex, "tab_codex_7d_5h.png"),
-            (.claude, "tab_claude_reserved.png"),
-            (.grok, "tab_grok_reserved.png"),
-            (.deepseek, "tab_deepseek_reserved.png")
+            (.codex, "tab_codex_7d_5h.png")
         ]
         for (idx, (source, filename)) in aiTabs.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 + Double(idx) * 0.4) { [weak self] in
