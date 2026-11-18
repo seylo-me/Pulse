@@ -159,75 +159,8 @@ struct SystemPopupView: View {
             
             Spacer(minLength: 8)
             
-            // Action Buttons: Pin (置顶), Refresh, Power (Delete X close button) - Pure Dark Glass
+            // Action Buttons: Quick Jump & Power / Close - Pure Dark Glass
             HStack(spacing: 5) {
-                Button(action: {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        monitor.isPinned.toggle()
-                    }
-                }) {
-                    Image(systemName: monitor.isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 11, weight: monitor.isPinned ? .semibold : .regular))
-                        .foregroundColor(monitor.isPinned ? Color(hex: 0x60A5FA) : Color.white.opacity(0.70))
-                        .frame(width: 26, height: 26)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(monitor.isPinned ? Color(hex: 0x1E3A8A).opacity(0.50) : Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(
-                                        colors: monitor.isPinned
-                                            ? [Color(hex: 0x3B82F6).opacity(0.30), Color(hex: 0x1D4ED8).opacity(0.12)]
-                                            : [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    monitor.isPinned
-                                        ? Color(hex: 0x60A5FA).opacity(0.75)
-                                        : Color.white.opacity(0.18),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help(monitor.isPinned ? "取消置顶 (当前已固定在桌面最前)" : "置顶浮窗 (点击外部不关闭，常驻桌面)")
-                
-                Button(action: {
-                    monitor.refreshSnapshot()
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.white.opacity(0.75))
-                        .frame(width: 26, height: 26)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("刷新数据")
-
                 // ── Quick Jump to AI Center
                 Button(action: onOpenAI) {
                     Image(systemName: "sparkles")
@@ -253,6 +186,7 @@ struct SystemPopupView: View {
                 }
                 .buttonStyle(.springPress)
                 .disableFocusRing()
+                .help("切换到 AI 额度中心")
                 .help("打开 AI 额度中心")
                 
                 // ── Dedicated Exit System Monitor (Independent from AI Telemetry)
@@ -1072,83 +1006,13 @@ struct AIPopupView: View {
             
             Spacer(minLength: 4)
             
-            HStack(spacing: 4) {
-                Button(action: {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        quotaMgr.isPinned.toggle()
-                    }
-                }) {
-                    Image(systemName: quotaMgr.isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 10.5, weight: quotaMgr.isPinned ? .semibold : .regular))
-                        .foregroundColor(quotaMgr.isPinned ? Color(hex: 0xC084FC) : Color.white.opacity(0.70))
-                        .frame(width: 25, height: 25)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(quotaMgr.isPinned ? Color(hex: 0x581C87).opacity(0.50) : Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(
-                                        colors: quotaMgr.isPinned
-                                            ? [Color(hex: 0xA855F7).opacity(0.30), Color(hex: 0x7E22CE).opacity(0.12)]
-                                            : [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    quotaMgr.isPinned
-                                        ? Color(hex: 0xC084FC).opacity(0.75)
-                                        : Color.white.opacity(0.18),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help(quotaMgr.isPinned ? "取消置顶 (当前已固定在桌面最前)" : "置顶浮窗 (点击外部不关闭，常驻桌面)")
-                
-                Button(action: {
-                    quotaMgr.fetchAntigravityLiveDaemonQuota(force: true)
-                    quotaMgr.fetchCodexLiveQuota(force: true)
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 10.5))
-                        .foregroundColor(Color.white.opacity(0.75))
-                        .rotationEffect(.degrees(quotaMgr.isRefreshing ? 360 : 0))
-                        .animation(quotaMgr.isRefreshing ? Animation.linear(duration: 0.8).repeatForever(autoreverses: false) : .default, value: quotaMgr.isRefreshing)
-                        .frame(width: 25, height: 25)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
-                                RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                                )
-                            }
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
-                                )
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.springPress)
-                .disableFocusRing()
-                .help("立即刷新实时配额")
-
+            HStack(spacing: 5) {
                 // ── Quick Jump to System Monitor
                 Button(action: onOpenSystem) {
                     Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 10.5))
+                        .font(.system(size: 11))
                         .foregroundColor(ThemeColors.accentCyan)
-                        .frame(width: 25, height: 25)
+                        .frame(width: 26, height: 26)
                         .background(
                             ZStack {
                                 RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
