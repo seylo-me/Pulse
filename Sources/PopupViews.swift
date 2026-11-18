@@ -344,7 +344,8 @@ struct SystemPopupView: View {
                             .font(.oppoSans(9.5, weight: .medium))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.uploadTotal)
-                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
+                            .font(.sfSans(10.5, weight: .bold))
+                            .monospacedDigit()
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                     
@@ -358,7 +359,8 @@ struct SystemPopupView: View {
                             .font(.oppoSans(9.5, weight: .medium))
                             .foregroundColor(ThemeColors.textMuted)
                         Text(monitor.snapshot.downloadTotal)
-                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
+                            .font(.sfSans(10.5, weight: .bold))
+                            .monospacedDigit()
                             .foregroundColor(ThemeColors.textPrimary)
                     }
                 }
@@ -532,15 +534,9 @@ struct SystemPopupView: View {
                         
                         Spacer()
                         
-                        Text(item.uploadSpeed)
-                            .font(.sfSans(10, weight: .medium, design: .monospaced))
-                            .foregroundColor(ThemeColors.textSecondary)
-                            .frame(width: 45, alignment: .trailing)
+                        processSpeedView(item.uploadSpeed, isBold: false, color: ThemeColors.textSecondary)
                         
-                        Text(item.downloadSpeed)
-                            .font(.sfSans(10.5, weight: .bold, design: .monospaced))
-                            .foregroundColor(ThemeColors.textPrimary)
-                            .frame(width: 45, alignment: .trailing)
+                        processSpeedView(item.downloadSpeed, isBold: true, color: ThemeColors.textPrimary)
                     }
                     .padding(.vertical, 1)
                 }
@@ -549,6 +545,26 @@ struct SystemPopupView: View {
             .padding(.vertical, 6.5)
             .industrialCard(cornerRadius: 10)
         }
+    }
+    
+    // MARK: - Process Speed Label (Tight Single Space between Number and Unit, Tabular Digits)
+    @ViewBuilder
+    private func processSpeedView(_ speed: String, isBold: Bool, color: Color) -> some View {
+        let clean = speed.replacingOccurrences(of: " ", with: "")
+        let unit = String(clean.filter { $0.isLetter })
+        let num = String(clean.filter { !$0.isLetter })
+        
+        HStack(alignment: .lastTextBaseline, spacing: 2) {
+            Text(num)
+                .font(.sfSans(isBold ? 10.5 : 10, weight: isBold ? .bold : .medium))
+                .monospacedDigit()
+            if !unit.isEmpty {
+                Text(unit)
+                    .font(.sfSans(isBold ? 9.5 : 9, weight: isBold ? .semibold : .medium))
+            }
+        }
+        .foregroundColor(color)
+        .frame(width: 45, alignment: .trailing)
     }
 
     // ════════════════════════════════════════════════════════════
@@ -684,7 +700,8 @@ struct SystemPopupView: View {
                 
                 HStack {
                     Text(String(format: "已用 %.1f GB / 总共 %.0f GB", monitor.snapshot.memUsedGB, monitor.snapshot.memTotalGB))
-                        .font(.sfSans(10, weight: .medium, design: .monospaced))
+                        .font(.sfSans(10, weight: .medium))
+                        .monospacedDigit()
                         .foregroundColor(ThemeColors.textSecondary)
                     Spacer()
                     HStack(spacing: 3) {
@@ -700,28 +717,32 @@ struct SystemPopupView: View {
                     HStack(spacing: 2) {
                         Circle().fill(ThemeColors.accentBlue).frame(width: 3, height: 3)
                         Text("App: 21.5 GB")
-                            .font(.sfSans(8, weight: .medium, design: .monospaced))
+                            .font(.sfSans(8, weight: .medium))
+                            .monospacedDigit()
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.accentBlue)
                     }
                     HStack(spacing: 2) {
                         Circle().fill(ThemeColors.accentPurple).frame(width: 3, height: 3)
                         Text("联动: 4.0 GB")
-                            .font(.sfSans(8, weight: .medium, design: .monospaced))
+                            .font(.sfSans(8, weight: .medium))
+                            .monospacedDigit()
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.purpleLight)
                     }
                     HStack(spacing: 2) {
                         Circle().fill(ThemeColors.accentOrange).frame(width: 3, height: 3)
                         Text("压缩: 5.1 GB")
-                            .font(.sfSans(8, design: .monospaced))
+                            .font(.sfSans(8))
+                            .monospacedDigit()
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.textSecondary)
                     }
                     HStack(spacing: 2) {
                         Circle().fill(ThemeColors.textMuted).frame(width: 3, height: 3)
                         Text("可用: 9.4 GB")
-                            .font(.sfSans(8, design: .monospaced))
+                            .font(.sfSans(8))
+                            .monospacedDigit()
                             .lineLimit(1)
                             .foregroundColor(ThemeColors.textMuted)
                     }
@@ -769,7 +790,8 @@ struct SystemPopupView: View {
                         .foregroundColor(ThemeColors.textMuted)
                     Spacer()
                     Text(String(format: "已用 %.0f GB / 总共 %.0f GB", monitor.snapshot.diskUsedGB, monitor.snapshot.diskTotalGB))
-                        .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .medium))
+                        .monospacedDigit()
                         .foregroundColor(ThemeColors.textSecondary)
                 }
             }
