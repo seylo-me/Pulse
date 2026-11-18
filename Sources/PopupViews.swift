@@ -99,7 +99,7 @@ struct SystemPopupView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 6)
             
-            // ── Main Content Tab Area (100% Fit in One Screen, No Scrolling)
+            // ── Main Content Tab Area (100% Fit in One Screen, Instant Zero-Lag Tab Switching)
             VStack(spacing: 0) {
                 switch monitor.systemTab {
                 case .traffic:
@@ -110,6 +110,7 @@ struct SystemPopupView: View {
             }
             .padding(.horizontal, 14)
             .padding(.top, 2)
+            .transaction { $0.animation = nil }
             
             Spacer(minLength: 4)
             
@@ -205,7 +206,7 @@ struct SystemPopupView: View {
             ForEach(SystemTab.allCases, id: \.rawValue) { tab in
                 let isSelected = (monitor.systemTab == tab)
                 Button(action: {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    withAnimation(.spring(response: 0.20, dampingFraction: 0.86)) {
                         monitor.systemTab = tab
                     }
                 }) {
@@ -975,6 +976,7 @@ struct AIPopupView: View {
                 .padding(.bottom, 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transaction { $0.animation = nil }
             
             aiFooterView
         }
@@ -1064,7 +1066,7 @@ struct AIPopupView: View {
                     let isSelected = (quotaMgr.selectedAITab == source)
                     
                     Button(action: {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        withAnimation(.spring(response: 0.20, dampingFraction: 0.86)) {
                             quotaMgr.selectedAITab = source
                             quotaMgr.setStatusAI(source) // 切换直接联动状态栏，无需二次操作！
                         }
