@@ -158,6 +158,18 @@ class StatusBarController: NSObject {
                 self?.updateAISize()
             }
         }
+        
+        monitor.onPinChanged = { [weak self] isPinned in
+            DispatchQueue.main.async {
+                self?.systemPanel?.level = isPinned ? .statusBar : .floating
+            }
+        }
+        
+        quotaMgr.onPinChanged = { [weak self] isPinned in
+            DispatchQueue.main.async {
+                self?.aiPanel?.level = isPinned ? .statusBar : .floating
+            }
+        }
     }
     
     private func setupPanels() {
@@ -440,7 +452,9 @@ class StatusBarController: NSObject {
                         let pFrame = self.systemPanel.frame
                         let bFrame = self.systemStatusItem?.button?.window?.frame ?? .zero
                         if !pFrame.contains(mouseLoc) && !bFrame.contains(mouseLoc) {
-                            DispatchQueue.main.async { self.closeSystemPanel() }
+                            if !self.monitor.isPinned {
+                                DispatchQueue.main.async { self.closeSystemPanel() }
+                            }
                         }
                     }
                     
@@ -448,7 +462,9 @@ class StatusBarController: NSObject {
                         let pFrame = self.aiPanel.frame
                         let bFrame = self.aiStatusItem?.button?.window?.frame ?? .zero
                         if !pFrame.contains(mouseLoc) && !bFrame.contains(mouseLoc) {
-                            DispatchQueue.main.async { self.closeAIPanel() }
+                            if !self.quotaMgr.isPinned {
+                                DispatchQueue.main.async { self.closeAIPanel() }
+                            }
                         }
                     }
                 }

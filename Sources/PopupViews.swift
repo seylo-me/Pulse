@@ -54,7 +54,6 @@ func loadPulseLogo() -> NSImage? {
 // MARK: - 1. System Popup View (Dedicated Traffic & Hardware - Zero AI Clutter!)
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
-    @State private var isPinned: Bool = false
     @Namespace private var systemTabNamespace
     
     var onOpenAI: () -> Void = {}
@@ -160,25 +159,38 @@ struct SystemPopupView: View {
             
             Spacer(minLength: 8)
             
-            // Action Buttons: Pin, Refresh, Power (Delete X close button) - Pure Dark Glass
+            // Action Buttons: Pin (置顶), Refresh, Power (Delete X close button) - Pure Dark Glass
             HStack(spacing: 5) {
-                Button(action: { isPinned.toggle() }) {
-                    Image(systemName: isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 11))
-                        .foregroundColor(isPinned ? ThemeColors.accentRed : Color.white.opacity(0.70))
+                Button(action: {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        monitor.isPinned.toggle()
+                    }
+                }) {
+                    Image(systemName: monitor.isPinned ? "pin.fill" : "pin")
+                        .font(.system(size: 11, weight: monitor.isPinned ? .semibold : .regular))
+                        .foregroundColor(monitor.isPinned ? Color(hex: 0x60A5FA) : Color.white.opacity(0.70))
                         .frame(width: 26, height: 26)
                         .background(
                             ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(monitor.isPinned ? Color(hex: 0x1E3A8A).opacity(0.50) : Color.black.opacity(0.25))
                                 RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(
+                                        colors: monitor.isPinned
+                                            ? [Color(hex: 0x3B82F6).opacity(0.30), Color(hex: 0x1D4ED8).opacity(0.12)]
+                                            : [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
                             }
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                    monitor.isPinned
+                                        ? Color(hex: 0x60A5FA).opacity(0.75)
+                                        : Color.white.opacity(0.18),
                                     lineWidth: 0.8
                                 )
                         )
@@ -186,7 +198,7 @@ struct SystemPopupView: View {
                 }
                 .buttonStyle(.springPress)
                 .disableFocusRing()
-                .help(isPinned ? "取消固定" : "固定浮窗")
+                .help(monitor.isPinned ? "取消置顶 (当前已固定在桌面最前)" : "置顶浮窗 (点击外部不关闭，常驻桌面)")
                 
                 Button(action: {
                     monitor.refreshSnapshot()
@@ -964,7 +976,6 @@ struct SystemPopupView: View {
 // MARK: - 2. Dedicated Independent AI Popup View
 struct AIPopupView: View {
     @ObservedObject var quotaMgr: QuotaManager
-    @State private var isPinned: Bool = false
     @Namespace private var aiTabNamespace
     var onOpenSystem: () -> Void = {}
     var onClose: () -> Void = {}
@@ -1062,23 +1073,36 @@ struct AIPopupView: View {
             Spacer(minLength: 4)
             
             HStack(spacing: 4) {
-                Button(action: { isPinned.toggle() }) {
-                    Image(systemName: isPinned ? "pin.fill" : "pin")
-                        .font(.system(size: 10.5))
-                        .foregroundColor(isPinned ? ThemeColors.accentRed : Color.white.opacity(0.70))
+                Button(action: {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        quotaMgr.isPinned.toggle()
+                    }
+                }) {
+                    Image(systemName: quotaMgr.isPinned ? "pin.fill" : "pin")
+                        .font(.system(size: 10.5, weight: quotaMgr.isPinned ? .semibold : .regular))
+                        .foregroundColor(quotaMgr.isPinned ? Color(hex: 0xC084FC) : Color.white.opacity(0.70))
                         .frame(width: 25, height: 25)
                         .background(
                             ZStack {
-                                RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.25))
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(quotaMgr.isPinned ? Color(hex: 0x581C87).opacity(0.50) : Color.black.opacity(0.25))
                                 RoundedRectangle(cornerRadius: 6).fill(
-                                    LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(
+                                        colors: quotaMgr.isPinned
+                                            ? [Color(hex: 0xA855F7).opacity(0.30), Color(hex: 0x7E22CE).opacity(0.12)]
+                                            : [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
                             }
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(
-                                    LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                    quotaMgr.isPinned
+                                        ? Color(hex: 0xC084FC).opacity(0.75)
+                                        : Color.white.opacity(0.18),
                                     lineWidth: 0.8
                                 )
                         )
@@ -1086,7 +1110,7 @@ struct AIPopupView: View {
                 }
                 .buttonStyle(.springPress)
                 .disableFocusRing()
-                .help(isPinned ? "取消固定" : "固定浮窗")
+                .help(quotaMgr.isPinned ? "取消置顶 (当前已固定在桌面最前)" : "置顶浮窗 (点击外部不关闭，常驻桌面)")
                 
                 Button(action: {
                     quotaMgr.fetchAntigravityLiveDaemonQuota(force: true)

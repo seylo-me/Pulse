@@ -30,6 +30,14 @@ class SystemMonitor: ObservableObject {
     @Published var isSystemStatusItemActive: Bool = true
     @Published var isAIStatusItemActive: Bool = true
     
+    // Window Pin / Always On Top (置顶 / 固定浮窗)
+    @Published var isPinned: Bool = false {
+        didSet {
+            onPinChanged?(isPinned)
+        }
+    }
+    var onPinChanged: ((Bool) -> Void)?
+    
     // Panel visibility flag for adaptive power throttling
     var isPanelVisible: Bool = false {
         didSet {
