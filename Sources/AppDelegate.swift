@@ -8,6 +8,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarController: StatusBarController!
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Automatically enable Launch At Login by default on launch
+        LaunchAtLoginManager.shared.setupDefaultLaunchAtLogin()
         statusBarController = StatusBarController()
     }
     

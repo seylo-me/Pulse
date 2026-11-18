@@ -392,7 +392,19 @@ class StatusBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        // 5. Quit App
+        // 5. Launch At Login (开机自启)
+        let loginItem = NSMenuItem(
+            title: "开机自动启动",
+            action: #selector(toggleLaunchAtLogin),
+            keyEquivalent: ""
+        )
+        loginItem.target = self
+        loginItem.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off
+        menu.addItem(loginItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // 6. Quit App
         let quit = NSMenuItem(
             title: "退出 Pulse",
             action: #selector(quitApp),
@@ -402,6 +414,10 @@ class StatusBarController: NSObject {
         menu.addItem(quit)
         
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
+    }
+    
+    @objc func toggleLaunchAtLogin() {
+        LaunchAtLoginManager.shared.toggle()
     }
     
     @objc func toggleSystemStatusItem() {
