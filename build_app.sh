@@ -82,6 +82,9 @@ assemble_bundle() {
 </dict>
 </plist>
 PLIST
+
+    # 对 App Bundle 进行 Ad-hoc 签名（确保 Apple Silicon M系列原生执行信任，避免 Gatekeeper 误报已损坏）
+    codesign --force --deep --sign - "$TARGET_DIR"
 }
 
 echo "📦 [5/5] 打包应用包及发布镜像..."

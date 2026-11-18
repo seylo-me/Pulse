@@ -58,7 +58,13 @@
 | **Apple Silicon 专属版** | Mac mini / MacBook / iMac (M1, M2, M3, M4 芯片) | `Pulse-v1.5-AppleSilicon.dmg` |
 | **Universal 通用版** | 兼容所有 Apple Silicon 芯片 与 Intel 处理器 Mac | `Pulse-v1.5-Universal.dmg` |
 
-> **提示**：下载 DMG 后，将 `Pulse.app` 拖入 `Applications` 应用程序文件夹即可直接启动运行。
+> **提示**：下载 DMG 后，将 `Pulse.app` 拖入 `Applications` 应用程序文件夹即可。
+>
+> 💡 **首次启动提示「无法打开，因为无法验证开发者」？**  
+> 本项目为开源软件，未绑定每年 $99 的苹果商业企业开发者证书，macOS 会对从网络下载的应用触发 Gatekeeper 拦截：
+> 1. **右键打开（推荐）**：在应用程序中，**按住 Control 键鼠标右键点击 `Pulse.app`**，选择 **「打开」**，在弹框中点击 **「仍要打开」** 即可（仅需操作一次，后续双击即可打开）。
+> 2. **系统设置放行**：打开 **系统设置 -> 隐私与安全性**，滑到最底部点击 **「仍要打开」**。
+> 3. **终端一行命令**：执行 `xattr -cr /Applications/Pulse.app` 即可彻底清除隔离属性。
 
 ---
 
