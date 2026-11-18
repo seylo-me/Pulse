@@ -1093,13 +1093,17 @@ struct AIPopupView: View {
                             Text(source.title)
                                 .font(.sfSans(11, weight: isSelected ? .semibold : .regular))
                             
-                            if !source.isDetectedOnMachine {
-                                Text("待连接")
-                                    .font(.pingFangSC(7.5, weight: .regular))
-                                    .foregroundColor(Color.white.opacity(0.50))
-                                    .padding(.horizontal, 3.5)
-                                    .padding(.vertical, 0.8)
-                                    .background(Color.white.opacity(0.08))
+                            if !source.isConfigured {
+                                let badgeText = (source == .claude && source.isDetectedOnMachine) ? "待登录" : "待连接"
+                                let badgeColor = (source == .claude && source.isDetectedOnMachine) ? Color(hex: 0xF59E0B) : Color.white.opacity(0.50)
+                                let badgeBg = (source == .claude && source.isDetectedOnMachine) ? Color(hex: 0xF59E0B).opacity(0.16) : Color.white.opacity(0.08)
+                                
+                                Text(badgeText)
+                                    .font(.pingFangSC(7.5, weight: .medium))
+                                    .foregroundColor(badgeColor)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(badgeBg)
                                     .clipShape(Capsule())
                             }
                         }
@@ -1264,12 +1268,19 @@ struct AIProfileQuotaCardView: View {
     }
     
     private func maskEmail(_ raw: String) -> String {
+        guard raw.contains("@") else {
+            return raw
+        }
         if let startIdx = raw.firstIndex(of: "("),
            let endIdx = raw.lastIndex(of: ")"),
            startIdx < endIdx {
             let prefix = String(raw[..<startIdx])
             let inner = String(raw[raw.index(after: startIdx)..<endIdx])
-            return "\(prefix)(\(maskInnerEmail(inner)))"
+            if inner.contains("@") {
+                return "\(prefix)(\(maskInnerEmail(inner)))"
+            } else {
+                return raw
+            }
         } else {
             return maskInnerEmail(raw)
         }
@@ -1385,20 +1396,57 @@ struct AIProfileQuotaCardView: View {
                 
                 // Status Pill & Action
                 VStack(alignment: .trailing, spacing: 4) {
+                    let pillTitle: String = {
+                        if source.isConfigured {
+                            return profile.isActive ? "Active" : "已无额度"
+                        } else if source == .claude && source.isDetectedOnMachine {
+                            return "待登录"
+                        } else {
+                            return "待连接"
+                        }
+                    }()
+                    let pillColor: Color = {
+                        if source.isConfigured {
+                            return profile.isActive ? Color(hex: 0x86EFAC) : Color(hex: 0xFCA5A5)
+                        } else if source == .claude && source.isDetectedOnMachine {
+                            return Color(hex: 0xFDE68A)
+                        } else {
+                            return ThemeColors.textSecondary
+                        }
+                    }()
+                    let pillDotColor: Color = {
+                        if source.isConfigured {
+                            return profile.isActive ? ThemeColors.accentGreen : Color(hex: 0xEF4444)
+                        } else if source == .claude && source.isDetectedOnMachine {
+                            return Color(hex: 0xF59E0B)
+                        } else {
+                            return ThemeColors.textMuted
+                        }
+                    }()
+                    let pillBgColor: Color = {
+                        if source.isConfigured {
+                            return profile.isActive ? ThemeColors.accentGreen.opacity(0.16) : Color(hex: 0x7F1D1D).opacity(0.4)
+                        } else if source == .claude && source.isDetectedOnMachine {
+                            return Color(hex: 0xF59E0B).opacity(0.15)
+                        } else {
+                            return Color.white.opacity(0.06)
+                        }
+                    }()
+                    
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(profile.isActive ? ThemeColors.accentGreen : Color(hex: 0xEF4444))
+                            .fill(pillDotColor)
                             .frame(width: 4.5, height: 4.5)
-                        Text(source.isConfigured ? (profile.isActive ? "Active" : "已无额度") : "预留就绪")
+                        Text(pillTitle)
                             .font(.sfSans(8.5, weight: .bold))
-                            .foregroundColor(source.isConfigured ? (profile.isActive ? Color(hex: 0x86EFAC) : Color(hex: 0xFCA5A5)) : ThemeColors.textSecondary)
+                            .foregroundColor(pillColor)
                     }
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
-                    .background(profile.isActive ? ThemeColors.accentGreen.opacity(0.16) : Color(hex: 0x7F1D1D).opacity(0.4))
+                    .background(pillBgColor)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(profile.isActive ? ThemeColors.accentGreen.opacity(0.4) : Color(hex: 0xEF4444).opacity(0.4), lineWidth: 0.6)
+                            .stroke(pillDotColor.opacity(0.4), lineWidth: 0.6)
                     )
                     .clipShape(Capsule())
                     
@@ -1574,31 +1622,83 @@ struct AIProfileQuotaCardView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("\(source.title) 本机凭据自动识别")
-                        .font(.sfSans(11, weight: .bold))
-                        .foregroundColor(ThemeColors.textPrimary)
-                    Text("架构就绪 · 本机检测到配置文件即可自动接入")
-                        .font(.oppoSans(8.5, weight: .medium))
-                        .foregroundColor(ThemeColors.textMuted)
+                    if source == .claude && source.isDetectedOnMachine {
+                        Text("Claude Code 运行环境已探测")
+                            .font(.sfSans(11, weight: .bold))
+                            .foregroundColor(ThemeColors.textPrimary)
+                        Text("检测到 /usr/local/bin/claude · 待终端授权")
+                            .font(.oppoSans(8.5, weight: .medium))
+                            .foregroundColor(ThemeColors.textMuted)
+                    } else {
+                        Text("\(source.title) 本机凭据自动识别")
+                            .font(.sfSans(11, weight: .bold))
+                            .foregroundColor(ThemeColors.textPrimary)
+                        Text("架构就绪 · 本机检测到配置文件即可自动接入")
+                            .font(.oppoSans(8.5, weight: .medium))
+                            .foregroundColor(ThemeColors.textMuted)
+                    }
                 }
                 
                 Spacer()
                 
-                Text(source.isConfigured ? "已就绪" : "待连接")
+                let statusLabel: String = {
+                    if source.isConfigured {
+                        return "已就绪"
+                    } else if source == .claude && source.isDetectedOnMachine {
+                        return "待登录"
+                    } else {
+                        return "待连接"
+                    }
+                }()
+                let statusColor = (source == .claude && source.isDetectedOnMachine) ? Color(hex: 0xF59E0B) : Color(hex: source.accentHex)
+                
+                Text(statusLabel)
                     .font(.sfSans(8.5, weight: .semibold))
-                    .foregroundColor(Color(hex: source.accentHex))
+                    .foregroundColor(statusColor)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2.5)
-                    .background(Color(hex: source.accentHex).opacity(0.12))
+                    .background(statusColor.opacity(0.12))
                     .cornerRadius(4)
             }
             
-            Text("Pulse 支持自动扫描当前用户系统目录下的配置文件与 Token。若已配置环境变量或本地 JSON，即可在状态栏与面板无感切换。")
-                .font(.oppoSans(9, weight: .regular))
-                .foregroundColor(ThemeColors.textSecondary)
-                .lineSpacing(2.5)
+            if source == .claude && source.isDetectedOnMachine {
+                Text("Pulse 已自动探测到本机安装了 Claude Code CLI 与客户端环境。当前终端授权状态为未登录。点击下方按钮即可唤起终端一键执行登录，或在环境变量中设置 ANTHROPIC_API_KEY。")
+                    .font(.oppoSans(9, weight: .regular))
+                    .foregroundColor(ThemeColors.textSecondary)
+                    .lineSpacing(2.5)
+            } else {
+                Text("Pulse 支持自动扫描当前用户系统目录下的配置文件与 Token。若已配置环境变量或本地 JSON，即可在状态栏与面板无感切换。")
+                    .font(.oppoSans(9, weight: .regular))
+                    .foregroundColor(ThemeColors.textSecondary)
+                    .lineSpacing(2.5)
+            }
             
             HStack(spacing: 8) {
+                if source == .claude && source.isDetectedOnMachine {
+                    Button(action: {
+                        let script = "tell application \"Terminal\" to do script \"claude auth login\""
+                        if let appleScript = NSAppleScript(source: script) {
+                            var err: NSDictionary?
+                            appleScript.executeAndReturnError(&err)
+                        }
+                        NSWorkspace.shared.launchApplication("Terminal")
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "terminal")
+                                .font(.system(size: 8.5))
+                            Text("终端执行登录 (claude login)")
+                                .font(.sfSans(9, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: 0xD97706))
+                        .cornerRadius(5)
+                    }
+                    .buttonStyle(.springPress)
+                    .disableFocusRing()
+                }
+                
                 Button(action: {
                     let dir = configFileDir(for: source)
                     try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)

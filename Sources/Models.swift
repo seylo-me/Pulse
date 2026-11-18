@@ -79,9 +79,11 @@ enum ActiveAISource: String, CaseIterable, Codable {
             return FileManager.default.fileExists(atPath: home + "/.codex/auth.json") ||
                    FileManager.default.fileExists(atPath: home + "/.config/codex/usage.json")
         case .claude:
-            return FileManager.default.fileExists(atPath: home + "/.claude.json") ||
+            return FileManager.default.fileExists(atPath: "/usr/local/bin/claude") ||
+                   FileManager.default.fileExists(atPath: "/Applications/Claude.app") ||
+                   FileManager.default.fileExists(atPath: home + "/.claude.json") ||
                    FileManager.default.fileExists(atPath: home + "/.claude") ||
-                   FileManager.default.fileExists(atPath: home + "/.config/claude/config.json")
+                   FileManager.default.fileExists(atPath: home + "/Library/Application Support/Claude")
         case .grok:
             return FileManager.default.fileExists(atPath: home + "/.grok") ||
                    FileManager.default.fileExists(atPath: home + "/.config/grok")
@@ -92,7 +94,26 @@ enum ActiveAISource: String, CaseIterable, Codable {
     }
     
     var isConfigured: Bool {
-        return isDetectedOnMachine
+        let home = NSHomeDirectory()
+        switch self {
+        case .antigravity:
+            return FileManager.default.fileExists(atPath: home + "/.gemini/antigravity/usage.json")
+        case .codex:
+            return FileManager.default.fileExists(atPath: home + "/.codex/auth.json")
+        case .claude:
+            if let envKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !envKey.isEmpty {
+                return true
+            }
+            let keyFile = home + "/.anthropic/apiKey"
+            if FileManager.default.fileExists(atPath: keyFile) {
+                return true
+            }
+            return false
+        case .grok:
+            return FileManager.default.fileExists(atPath: home + "/.grok/credentials.json")
+        case .deepseek:
+            return FileManager.default.fileExists(atPath: home + "/.deepseek/config.json")
+        }
     }
 }
 

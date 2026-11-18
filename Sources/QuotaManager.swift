@@ -74,7 +74,7 @@ class QuotaManager: ObservableObject {
         case .codex:
             return codexCapsuleText
         case .claude:
-            return claudeProfile.isActive ? "Claude · 7d: 88% · 5h: 92%" : "Claude · 待连接"
+            return claudeProfile.isActive ? "Claude · 已就绪" : (ActiveAISource.claude.isDetectedOnMachine ? "Claude · 待登录" : "Claude · 待连接")
         case .grok:
             return grokProfile.isActive ? "Grok · 2h: 80% · xAI" : "Grok · 待连接"
         case .deepseek:
@@ -368,32 +368,29 @@ class QuotaManager: ObservableObject {
             self.codexCapsuleText = "Codex · 7d: \(codex7dStr) · 5h: \(codex5hStr)"
         }
         
-        // 5. Dynamic Claude Detection (Checks ~/.claude.json, ~/.claude, or config)
+        // 5. Dynamic Claude Detection (Checks ~/.claude.json, CLI, Claude.app, or API Key)
+        let hasClaudeCLI = FileManager.default.fileExists(atPath: "/usr/local/bin/claude")
+        let hasClaudeApp = FileManager.default.fileExists(atPath: "/Applications/Claude.app")
         let claudeJsonPath = NSHomeDirectory() + "/.claude.json"
         let claudeDirPath = NSHomeDirectory() + "/.claude"
-        if FileManager.default.fileExists(atPath: claudeJsonPath) || FileManager.default.fileExists(atPath: claudeDirPath) {
-            self.claudeProfile.accountEmail = "Claude Code 运行时 (本机已就绪)"
-            self.claudeProfile.accountType = "Anthropic Claude · 本机检测已安装"
+        let hasClaudeFiles = FileManager.default.fileExists(atPath: claudeJsonPath) || FileManager.default.fileExists(atPath: claudeDirPath)
+        
+        let envKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? ""
+        if !envKey.isEmpty {
+            self.claudeProfile.accountEmail = "ANTHROPIC_API_KEY 已配置"
+            self.claudeProfile.accountType = "Anthropic Claude · API 认证已就绪"
             self.claudeProfile.isActive = true
-            self.claudeProfile.categories = [
-                ModelCategoryQuota(
-                    categoryName: "Claude 3.7 Sonnet & 3.5 Haiku",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: 88.0,
-                            resetText: "周期配额正常 · 本机已就绪",
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
-                            windowLabel: "5h",
-                            percent: 92.0,
-                            resetText: "速率限制正常",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
+            self.claudeProfile.categories = []
+        } else if hasClaudeCLI || hasClaudeApp || hasClaudeFiles {
+            // Claude runtime/app exists on machine, but not yet authenticated/logged in
+            self.claudeProfile.accountEmail = "未登录 Anthropic 账户"
+            if hasClaudeCLI {
+                self.claudeProfile.accountType = "检测到 Claude Code (v2.1.197) · 终端待登录"
+            } else {
+                self.claudeProfile.accountType = "检测到 Claude 客户端 · 待登录"
+            }
+            self.claudeProfile.isActive = false
+            self.claudeProfile.categories = []
         } else {
             self.claudeProfile.accountEmail = "未检测到本地凭证"
             self.claudeProfile.accountType = "支持 ~/.claude.json 或 API Key"
