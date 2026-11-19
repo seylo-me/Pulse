@@ -167,7 +167,7 @@ class SystemStatusBarView: NSView {
 class AIStatusBarView: NSView {
     
     private var activeSource: ActiveAISource = .antigravity
-    private var currentText: String = "Antigravity · 7d: 99% · 5h: 95%"
+    private var currentText: String = "Antigravity · 5h: 95% · 7d: 99%"
     private var isExhausted: Bool = false
     
     var onClick: (() -> Void)?

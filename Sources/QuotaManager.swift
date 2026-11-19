@@ -21,13 +21,13 @@ class QuotaManager: ObservableObject {
     @Published var antigravityModelName: String = "Antigravity"
     @Published var antigravity7dStr: String = "100%"
     @Published var antigravity5hStr: String = "100%"
-    @Published var antigravityCapsuleText: String = "Antigravity · 7d: 100% · 5h: 100%"
+    @Published var antigravityCapsuleText: String = "Antigravity · 5h: 100% · 7d: 100%"
     
     // Codex Quota (Live ChatGPT Plus / Wham Rate Limits)
     @Published var isCodexExhausted: Bool = false
     @Published var codex7dStr: String = "100%"
     @Published var codex5hStr: String = "100%"
-    @Published var codexCapsuleText: String = "Codex · 7d: 100% · 5h: 100%"
+    @Published var codexCapsuleText: String = "Codex · 5h: 100% · 7d: 100%"
     
     @Published var lastUpdated: String = "刚刚"
     
@@ -307,7 +307,7 @@ class QuotaManager: ObservableObject {
             self.antigravityProfile.accountType = "请在 Antigravity 中登录"
             self.antigravityProfile.isActive = false
         }
-        self.antigravityCapsuleText = "Antigravity · 7d: \(antigravity7dStr) · 5h: \(antigravity5hStr)"
+        self.antigravityCapsuleText = "Antigravity · 5h: \(antigravity5hStr) · 7d: \(antigravity7dStr)"
         
         // 3. Read real Codex account from ~/.codex/auth.json if available
         let codexAuthPath = NSHomeDirectory() + "/.codex/auth.json"
@@ -365,7 +365,7 @@ class QuotaManager: ObservableObject {
         if self.isCodexExhausted {
             self.codexCapsuleText = "Codex · 0 额度 · 100%"
         } else {
-            self.codexCapsuleText = "Codex · 7d: \(codex7dStr) · 5h: \(codex5hStr)"
+            self.codexCapsuleText = "Codex · 5h: \(codex5hStr) · 7d: \(codex7dStr)"
         }
         
         // 5. Dynamic Claude Detection (Checks ~/.claude.json, CLI, Claude.app, or API Key)
@@ -585,21 +585,21 @@ class QuotaManager: ObservableObject {
                 
                 self.antigravity7dStr = "\(g7dDisplayInt)%"
                 self.antigravity5hStr = "\(g5hDisplayInt)%"
-                self.antigravityCapsuleText = "Antigravity · 7d: \(self.antigravity7dStr) · 5h: \(self.antigravity5hStr)"
+                self.antigravityCapsuleText = "Antigravity · 5h: \(self.antigravity5hStr) · 7d: \(self.antigravity7dStr)"
                 
                 self.antigravityProfile.categories = [
                     ModelCategoryQuota(
                         categoryName: "Gemini Models",
                         windows: [
-                            RollingWindowQuota(windowLabel: "7d", percent: g7d, resetText: g7dReset, isExhausted: false),
-                            RollingWindowQuota(windowLabel: "5h", percent: g5h, resetText: g5hReset, isExhausted: false)
+                            RollingWindowQuota(windowLabel: "5h", percent: g5h, resetText: g5hReset, isExhausted: false),
+                            RollingWindowQuota(windowLabel: "7d", percent: g7d, resetText: g7dReset, isExhausted: false)
                         ]
                     ),
                     ModelCategoryQuota(
                         categoryName: "Claude and GPT models",
                         windows: [
-                            RollingWindowQuota(windowLabel: "7d", percent: cg7d, resetText: cg7dReset, isExhausted: false),
-                            RollingWindowQuota(windowLabel: "5h", percent: cg5h, resetText: cg5hReset, isExhausted: false)
+                            RollingWindowQuota(windowLabel: "5h", percent: cg5h, resetText: cg5hReset, isExhausted: false),
+                            RollingWindowQuota(windowLabel: "7d", percent: cg7d, resetText: cg7dReset, isExhausted: false)
                         ]
                     )
                 ]
@@ -741,7 +741,7 @@ class QuotaManager: ObservableObject {
                 if isExhausted {
                     self.codexCapsuleText = "Codex · 0 额度 · 100%"
                 } else {
-                    self.codexCapsuleText = "Codex · 7d: \(self.codex7dStr) · 5h: \(self.codex5hStr)"
+                    self.codexCapsuleText = "Codex · 5h: \(self.codex5hStr) · 7d: \(self.codex7dStr)"
                 }
                 
                 self.codexProfile.isActive = !isExhausted

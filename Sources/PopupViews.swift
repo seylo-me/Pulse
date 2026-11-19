@@ -33,6 +33,28 @@ struct SegmentedMeterView: View {
     }
 }
 
+// MARK: - Nothing OS Dot-Matrix Signal Meter (Stepped 4-Column Dot Matrix)
+struct DotMatrixSignalMeterView: View {
+    let bars: Int // 0..4
+    
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 2.2) {
+            ForEach(0..<4, id: \.self) { col in
+                let dotCount = col + 1
+                let isLit = bars > col
+                VStack(spacing: 2) {
+                    ForEach(0..<dotCount, id: \.self) { _ in
+                        Circle()
+                            .fill(isLit ? Color.white : Color.white.opacity(0.18))
+                            .frame(width: 2.2, height: 2.2)
+                    }
+                }
+            }
+        }
+        .frame(height: 15, alignment: .bottom)
+    }
+}
+
 // MARK: - Outlined Vector Logo (Loaded from Figma Node 16:15 pulse_logo.svg)
 func loadPulseLogo() -> NSImage? {
     if let bundlePath = Bundle.main.path(forResource: "pulse_logo", ofType: "svg"),
@@ -79,6 +101,33 @@ struct ExitPowerButton: View {
     }
 }
 
+// MARK: - AppKit Instant MouseDown Target (0ms Immediate Dispatch, Eliminates macOS 250ms Tap Delay)
+struct InstantPressArea: NSViewRepresentable {
+    let action: () -> Void
+    
+    func makeNSView(context: Context) -> InstantPressNSView {
+        let view = InstantPressNSView()
+        view.action = action
+        return view
+    }
+    
+    func updateNSView(_ nsView: InstantPressNSView, context: Context) {
+        nsView.action = action
+    }
+}
+
+class InstantPressNSView: NSView {
+    var action: (() -> Void)?
+    
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return self
+    }
+    
+    override func mouseDown(with event: NSEvent) {
+        action?()
+    }
+}
+
 // MARK: - 1. System Popup View (Dedicated Traffic & Hardware - Zero AI Clutter!)
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
@@ -109,6 +158,7 @@ struct SystemPopupView: View {
                     .opacity(monitor.systemTab == .hardware ? 1 : 0)
                     .allowsHitTesting(monitor.systemTab == .hardware)
             }
+            .transaction { $0.animation = nil }
             .padding(.horizontal, 14)
             .padding(.top, 2)
             
@@ -117,7 +167,7 @@ struct SystemPopupView: View {
             // ── Industrial Footer
             footerView
         }
-        .frame(width: 360, height: 535)
+        .frame(width: 360, height: 554)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
@@ -193,7 +243,7 @@ struct SystemPopupView: View {
             Spacer(minLength: 8)
             
             // Action Button: Bare Power/Close SVG glyph (Self-contained hover state)
-            ExitPowerButton(onExit: onExit, tooltip: "退出系统监控状态栏")
+            ExitPowerButton(onExit: onExit, tooltip: "退出系统监控（下次开机保持记忆）")
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
@@ -202,85 +252,79 @@ struct SystemPopupView: View {
     
     // MARK: - 2 Minimalist System Mode Switcher Pills (Ultra-Responsive Hardware-Accelerated Sliding Capsule)
     private var systemModeSwitcherView: some View {
-        GeometryReader { geo in
-            let totalWidth = geo.size.width
-            let pillWidth = (totalWidth - 6) / 2
-            let isHardware = (monitor.systemTab == .hardware)
-            
-            ZStack(alignment: .leading) {
-                // Background track
-                Capsule()
-                    .fill(Color.black.opacity(0.32))
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 0.6
-                            )
-                    )
-                
-                // Sliding Frosted Glass Capsule (Direct GPU Offset - 0ms Response, Never Hitches)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.18),
-                                Color.white.opacity(0.06)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+        let isHardware = (monitor.systemTab == .hardware)
+        
+        return ZStack(alignment: .leading) {
+            // Background track
+            Capsule()
+                .fill(Color.black.opacity(0.32))
+                .overlay(
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 0.6
                         )
+                )
+            
+            // Sliding Frosted Glass Capsule (Direct GPU Offset - 0ms Response, Never Hitches)
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.18),
+                            Color.white.opacity(0.06)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.50),
+                                    Color.white.opacity(0.12)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 0.75
+                        )
+                )
+                .frame(width: 163, height: 26)
+                .offset(x: isHardware ? 166 : 3)
+                .animation(.spring(response: 0.16, dampingFraction: 0.85), value: monitor.systemTab)
+            
+            // Two Interactive Tap Targets (Instant 0ms AppKit MouseDown Dispatch, Zero Delay)
+            HStack(spacing: 0) {
+                ForEach(SystemTab.allCases, id: \.rawValue) { tab in
+                    let isSelected = (monitor.systemTab == tab)
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 10.5, weight: isSelected ? .bold : .medium))
+                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
+                        Text(tab.title)
+                            .font(.sfSans(11, weight: isSelected ? .bold : .regular))
+                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
                     .overlay(
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.50),
-                                        Color.white.opacity(0.12)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 0.75
-                            )
-                    )
-                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
-                    .frame(width: pillWidth, height: 26)
-                    .offset(x: isHardware ? (pillWidth + 3) : 3)
-                    .animation(.spring(response: 0.18, dampingFraction: 0.88), value: monitor.systemTab)
-                
-                // Two Interactive Buttons
-                HStack(spacing: 0) {
-                    ForEach(SystemTab.allCases, id: \.rawValue) { tab in
-                        let isSelected = (monitor.systemTab == tab)
-                        Button {
+                        InstantPressArea {
                             if monitor.systemTab != tab {
                                 monitor.systemTab = tab
                             }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 10.5, weight: isSelected ? .bold : .medium))
-                                    .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
-                                Text(tab.title)
-                                    .font(.sfSans(11, weight: isSelected ? .bold : .regular))
-                                    .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .disableFocusRing()
-                    }
+                    )
                 }
             }
         }
-        .frame(height: 32)
+        .frame(width: 332, height: 32)
     }
     
     // ════════════════════════════════════════════════════════════
@@ -391,33 +435,38 @@ struct SystemPopupView: View {
             .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
-            // Wi-Fi Card (Real Dynamically Detected SSID)
+            // Wi-Fi Card (Real Dynamically Detected SSID & Dot-Matrix Signal Meter)
             HStack(spacing: 10) {
                 Image(systemName: "wifi")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(ThemeColors.textSecondary)
                 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(monitor.networkInfo.ssid)
+                    let wifiTitle: String = {
+                        let name = monitor.networkInfo.ssid.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if name.isEmpty || name == "以太网 / Wi-Fi" {
+                            return "以太网 / Wi-Fi"
+                        } else {
+                            return "以太网 / Wi-Fi（\(name)）"
+                        }
+                    }()
+                    
+                    Text(wifiTitle)
                         .font(.sfSans(12, weight: .bold))
                         .foregroundColor(ThemeColors.textPrimary)
+                        .lineLimit(1)
                     
-                    Text("5 GHz · 866 Mbps · 信道 157")
+                    Text("\(monitor.networkInfo.wifiBand) · \(monitor.networkInfo.wifiRate) · 信道 \(monitor.networkInfo.wifiChannel)")
                         .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                         .foregroundColor(ThemeColors.textMuted)
                 }
                 
                 Spacer()
                 
-                HStack(spacing: 5) {
-                    // Discrete dot signal indicator
-                    HStack(spacing: 2) {
-                        Circle().fill(Color.white).frame(width: 3, height: 3)
-                        Circle().fill(Color.white).frame(width: 3, height: 3)
-                        Circle().fill(Color.white).frame(width: 3, height: 3)
-                        Circle().fill(Color.white).frame(width: 3, height: 3)
-                    }
-                    .padding(.trailing, 2)
+                HStack(spacing: 6) {
+                    // Dot-Matrix Stepped Signal Meter
+                    DotMatrixSignalMeterView(bars: monitor.networkInfo.signalBars)
+                        .padding(.trailing, 2)
                     
                     HStack(spacing: 3) {
                         Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
@@ -578,7 +627,7 @@ struct SystemPopupView: View {
                 }
                 .padding(.bottom, 1)
                 
-                ForEach(monitor.topProcesses.prefix(4)) { item in
+                ForEach(monitor.topProcesses.prefix(5)) { item in
                     HStack(spacing: 8) {
                         Image(systemName: item.iconSystemName)
                             .font(.system(size: 9.5))
@@ -892,9 +941,18 @@ struct SystemPopupView: View {
                         Text("供电方式")
                             .font(.oppoSans(9))
                             .foregroundColor(ThemeColors.textMuted)
-                        Text(monitor.snapshot.powerSource)
-                            .font(.oppoSans(10, weight: .medium))
-                            .foregroundColor(ThemeColors.textPrimary)
+                        if monitor.snapshot.isDesktop {
+                            Text("交流电源供电")
+                                .font(.oppoSans(10, weight: .medium))
+                                .foregroundColor(ThemeColors.textPrimary)
+                            Text("AC Power · 台式机")
+                                .font(.sfSans(8.5, weight: .regular, design: .monospaced))
+                                .foregroundColor(ThemeColors.textMuted.opacity(0.85))
+                        } else {
+                            Text(monitor.snapshot.powerSource)
+                                .font(.oppoSans(10, weight: .medium))
+                                .foregroundColor(ThemeColors.textPrimary)
+                        }
                     }
                     Spacer()
                     VStack(alignment: .center, spacing: 1.5) {
@@ -941,9 +999,15 @@ struct SystemPopupView: View {
     // MARK: - Footer
     private var footerView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5")
+            Text("v1.5.1")
                 .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             
             Spacer()
             
@@ -1067,7 +1131,7 @@ struct AIPopupView: View {
             Spacer(minLength: 4)
             
             // ── Dedicated Exit AI Button (Self-Contained Hover State)
-            ExitPowerButton(onExit: onExit, tooltip: "退出 AI 状态栏")
+            ExitPowerButton(onExit: onExit, tooltip: "退出 AI 状态栏（下次开机保持记忆）")
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -1178,9 +1242,15 @@ struct AIPopupView: View {
     
     private var aiFooterView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5")
+            Text("v1.5.1")
                 .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             
             Spacer()
             

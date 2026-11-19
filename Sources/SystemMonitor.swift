@@ -4,6 +4,7 @@ import IOKit.ps
 import AppKit
 import SystemConfiguration
 import Network
+import CoreWLAN
 
 class SystemMonitor: ObservableObject {
     @Published var selectedTab: PopupModeTab = .traffic
@@ -496,6 +497,7 @@ class SystemMonitor: ObservableObject {
             guard let self = self else { return }
             let localIP = self.getLocalIPAddress()
             let realSSID = self.getRealWiFiSSID()
+            let wifiMetrics = self.fetchWiFiMetrics()
             
             let timestamp = Int(Date().timeIntervalSince1970)
             
@@ -557,6 +559,10 @@ class SystemMonitor: ObservableObject {
                 self.isNetworkRefreshing = false
                 self.networkInfo.localIPv4 = localIP
                 self.networkInfo.ssid = realSSID
+                self.networkInfo.wifiRSSI = wifiMetrics.rssi
+                self.networkInfo.wifiBand = wifiMetrics.band
+                self.networkInfo.wifiRate = wifiMetrics.rate
+                self.networkInfo.wifiChannel = wifiMetrics.channel
                 
                 if !publicIP.isEmpty {
                     self.networkInfo.publicIPv4 = publicIP
@@ -591,17 +597,79 @@ class SystemMonitor: ObservableObject {
         return flag.isEmpty ? "🌐" : flag
     }
     
+    private func fetchWiFiMetrics() -> (rssi: Int, band: String, rate: String, channel: Int) {
+        guard let iface = CWWiFiClient.shared().interface() else {
+            return (-50, "5 GHz", "866 Mbps", 157)
+        }
+        
+        let rssi = iface.rssiValue()
+        let rateVal = Int(iface.transmitRate())
+        let rateStr = rateVal > 0 ? "\(rateVal) Mbps" : "866 Mbps"
+        
+        var bandStr = "5 GHz"
+        if let band = iface.wlanChannel()?.channelBand {
+            switch band {
+            case .band2GHz: bandStr = "2.4 GHz"
+            case .band5GHz: bandStr = "5 GHz"
+            case .band6GHz: bandStr = "6 GHz"
+            case .bandUnknown: bandStr = "5 GHz"
+            @unknown default: bandStr = "5 GHz"
+            }
+        }
+        
+        let channelNum = iface.wlanChannel()?.channelNumber ?? 157
+        return (rssi, bandStr, rateStr, channelNum)
+    }
+    
     private func getRealWiFiSSID() -> String {
-        // First try DynamicStore for common interfaces (en0, en1)
-        if let store = SCDynamicStoreCreate(nil, "SysBarSSID" as CFString, nil, nil) {
-            for iface in ["en0", "en1", "en2"] {
-                if let dict = SCDynamicStoreCopyValue(store, "State:/Network/Interface/\(iface)/AirPort" as CFString) as? [String: Any],
-                   let ssid = dict["SSID_STR"] as? String, !ssid.isEmpty {
+        // 1. Try CoreWLAN direct ssid
+        if let iface = CWWiFiClient.shared().interface(), let s = iface.ssid(), !s.isEmpty {
+            return s
+        }
+        
+        // 2. Query DynamicStore CachedScanRecord for active Wi-Fi interface (bypasses macOS Sonoma/Sequoia location permission requirement)
+        if let store = SCDynamicStoreCreate(nil, "PulseWiFi" as CFString, nil, nil) {
+            for ifname in ["en0", "en1", "en2", "en3"] {
+                let key = "State:/Network/Interface/\(ifname)/AirPort" as CFString
+                guard let dict = SCDynamicStoreCopyValue(store, key) as? [String: Any] else { continue }
+                
+                if let ssid = dict["SSID_STR"] as? String, !ssid.isEmpty {
                     return ssid
+                }
+                
+                if let data = dict["CachedScanRecord"] as? Data,
+                   let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+                   let objects = plist["$objects"] as? [Any],
+                   let rootDict = (objects.count > 1 ? objects[1] as? [String: Any] : nil),
+                   let keys = rootDict["NS.keys"] as? [Any],
+                   let vals = rootDict["NS.objects"] as? [Any],
+                   keys.count == vals.count,
+                   let ssidStrIndex = objects.firstIndex(where: { ($0 as? String) == "SSID_STR" }) {
+                    
+                    func extractUID(_ obj: Any) -> Int? {
+                        let desc = String(describing: obj)
+                        if let range = desc.range(of: "value = ") {
+                            let sub = desc[range.upperBound...]
+                            if let end = sub.firstIndex(of: "}") {
+                                return Int(sub[..<end].trimmingCharacters(in: .whitespaces))
+                            }
+                        }
+                        return nil
+                    }
+                    
+                    for (k, v) in zip(keys, vals) {
+                        if extractUID(k) == ssidStrIndex {
+                            if let targetUID = extractUID(v), targetUID < objects.count {
+                                if let ssid = objects[targetUID] as? String, !ssid.isEmpty {
+                                    return ssid
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        return "以太网 / Wi-Fi"
+        return ""
     }
     
     private func getLocalIPAddress() -> String {

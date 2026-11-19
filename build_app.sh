@@ -4,7 +4,7 @@
 set -e
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="Pulse"
-VERSION="1.5.0"
+VERSION="1.5.1"
 BUNDLE_ID="com.sulee.pulse"
 DIST_DIR="$PROJ_DIR/dist"
 
@@ -65,7 +65,7 @@ assemble_bundle() {
     <key>CFBundleShortVersionString</key>
     <string>$VERSION</string>
     <key>CFBundleVersion</key>
-    <string>15</string>
+    <string>16</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
@@ -115,20 +115,20 @@ create_dmg() {
     echo "  ✅ 生成 DMG: $DIST_DIR/$DMG_NAME"
 }
 
-create_dmg "$ARM64_APP" "Pulse-v1.5-AppleSilicon.dmg" "Pulse (Apple Silicon)"
-create_dmg "$UNIVERSAL_APP" "Pulse-v1.5-Universal.dmg" "Pulse (Universal)"
+create_dmg "$ARM64_APP" "Pulse-v1.5.1-AppleSilicon.dmg" "Pulse (Apple Silicon)"
+create_dmg "$UNIVERSAL_APP" "Pulse-v1.5.1-Universal.dmg" "Pulse (Universal)"
 
 # 4. 创建 ZIP 压缩包 (方便 GitHub Releases 快速解压使用)
 cd "$DIST_DIR"
-rm -f "Pulse-v1.5-AppleSilicon.zip" "Pulse-v1.5-Universal.zip"
-zip -qry "Pulse-v1.5-AppleSilicon.zip" "Pulse-AppleSilicon.app"
-zip -qry "Pulse-v1.5-Universal.zip" "$APP_NAME.app"
-echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v1.5-AppleSilicon.zip"
-echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v1.5-Universal.zip"
+rm -f "Pulse-v1.5.1-AppleSilicon.zip" "Pulse-v1.5.1-Universal.zip"
+zip -qry "Pulse-v1.5.1-AppleSilicon.zip" "Pulse-AppleSilicon.app"
+zip -qry "Pulse-v1.5.1-Universal.zip" "$APP_NAME.app"
+echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v1.5.1-AppleSilicon.zip"
+echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v1.5.1-Universal.zip"
 
 echo ""
 echo "🎉 全部构建完成！"
 echo "--------------------------------------------------------"
-echo "📱 Apple Silicon 安装包: $DIST_DIR/Pulse-v1.5-AppleSilicon.dmg"
-echo "🌐 Universal 通用安装包: $DIST_DIR/Pulse-v1.5-Universal.dmg"
+echo "📱 Apple Silicon 安装包: $DIST_DIR/Pulse-v1.5.1-AppleSilicon.dmg"
+echo "🌐 Universal 通用安装包: $DIST_DIR/Pulse-v1.5.1-Universal.dmg"
 echo "--------------------------------------------------------"

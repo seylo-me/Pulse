@@ -66,7 +66,7 @@ struct DotMatrixCharView: View {
     }
 }
 
-// MARK: - Multi-Character Dot Matrix Text / Number View
+// MARK: - Multi-Character Dot Matrix Text / Number View (Hardware Accelerated GPU Canvas)
 struct DotMatrixTextView: View {
     let text: String
     var dotSize: CGFloat = 3.0
@@ -76,16 +76,35 @@ struct DotMatrixTextView: View {
     var showGrid: Bool = true
     
     var body: some View {
-        HStack(spacing: charSpacing) {
-            ForEach(Array(text.enumerated()), id: \.offset) { _, char in
-                DotMatrixCharView(
-                    char: char,
-                    dotSize: dotSize,
-                    dotSpacing: dotSpacing,
-                    activeColor: activeColor,
-                    showGrid: showGrid
-                )
+        let chars = Array(text)
+        let charWidth = CGFloat(5) * dotSize + CGFloat(4) * dotSpacing
+        let charHeight = CGFloat(7) * dotSize + CGFloat(6) * dotSpacing
+        let totalWidth = CGFloat(chars.count) * charWidth + CGFloat(max(0, chars.count - 1)) * charSpacing
+        
+        Canvas { context, size in
+            for (charIdx, char) in chars.enumerated() {
+                let charOffsetX = CGFloat(charIdx) * (charWidth + charSpacing)
+                let rows = DotMatrixFont.bitmap(for: char)
+                
+                for rowIdx in 0..<7 {
+                    let rowVal = rows[rowIdx]
+                    let y = CGFloat(rowIdx) * (dotSize + dotSpacing)
+                    
+                    for colIdx in 0..<5 {
+                        let x = charOffsetX + CGFloat(colIdx) * (dotSize + dotSpacing)
+                        let bitMask: UInt8 = 1 << (4 - colIdx)
+                        let isLit = (rowVal & bitMask) != 0
+                        
+                        let rect = CGRect(x: x, y: y, width: dotSize, height: dotSize)
+                        if isLit {
+                            context.fill(Path(ellipseIn: rect), with: .color(activeColor))
+                        } else if showGrid {
+                            context.fill(Path(ellipseIn: rect), with: .color(ThemeColors.dotInactive))
+                        }
+                    }
+                }
             }
         }
+        .frame(width: totalWidth, height: charHeight)
     }
 }

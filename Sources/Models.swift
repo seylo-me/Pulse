@@ -287,4 +287,16 @@ struct NetworkInfo {
     var directCountryFlag: String = ""
     var directLocation: String = ""
     var proxyLocation: String = ""
+    var wifiRSSI: Int = -50
+    var wifiBand: String = "5 GHz"
+    var wifiRate: String = "866 Mbps"
+    var wifiChannel: Int = 157
+    
+    var signalBars: Int {
+        if wifiRSSI >= -55 { return 4 }
+        if wifiRSSI >= -67 { return 3 }
+        if wifiRSSI >= -78 { return 2 }
+        if wifiRSSI >= -90 { return 1 }
+        return 0
+    }
 }

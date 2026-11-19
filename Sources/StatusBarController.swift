@@ -89,9 +89,28 @@ class StatusBarController: NSObject {
         quotaMgr.isAIStatusItemActive = aiActive
     }
     
+    // UserDefaults Keys for Persistent Status Bar Visibility Across Restarts
+    private let userDefaultsKeyShowSystem = "sysbar_show_system_item"
+    private let userDefaultsKeyShowAI = "sysbar_show_ai_item"
+    
     private func setupStatusItems() {
-        setupSystemStatusItem()
-        setupAIStatusItem()
+        let showSys = UserDefaults.standard.object(forKey: userDefaultsKeyShowSystem) as? Bool ?? true
+        let showAI = UserDefaults.standard.object(forKey: userDefaultsKeyShowAI) as? Bool ?? true
+        
+        // Failsafe: If both were previously closed, default to showing both so the app is accessible
+        if !showSys && !showAI {
+            setupSystemStatusItem()
+            setupAIStatusItem()
+            UserDefaults.standard.set(true, forKey: userDefaultsKeyShowSystem)
+            UserDefaults.standard.set(true, forKey: userDefaultsKeyShowAI)
+        } else {
+            if showSys {
+                setupSystemStatusItem()
+            }
+            if showAI {
+                setupAIStatusItem()
+            }
+        }
     }
     
     private func setupSystemStatusItem() {
@@ -207,7 +226,7 @@ class StatusBarController: NSObject {
         aiPanel.contentView = aiHosting
     }
     
-    // MARK: - Independent Component Exits & Restorations (Mutual Independence - 互不影响)
+    // MARK: - Independent Component Exits & Restorations (Mutual Independence - 互不影响 & 记住用户选择)
     func exitAI() {
         closeAIPanel()
         if let item = aiStatusItem {
@@ -215,6 +234,7 @@ class StatusBarController: NSObject {
             aiStatusItem = nil
             aiItemView = nil
         }
+        UserDefaults.standard.set(false, forKey: userDefaultsKeyShowAI)
         syncStatusItemFlags()
         
         // If system monitor was also exited, terminate the process
@@ -230,6 +250,7 @@ class StatusBarController: NSObject {
             systemStatusItem = nil
             systemItemView = nil
         }
+        UserDefaults.standard.set(false, forKey: userDefaultsKeyShowSystem)
         syncStatusItemFlags()
         
         // If AI monitor was also exited, terminate the process
@@ -240,6 +261,7 @@ class StatusBarController: NSObject {
     
     func restoreAI() {
         guard aiStatusItem == nil else { return }
+        UserDefaults.standard.set(true, forKey: userDefaultsKeyShowAI)
         setupAIStatusItem()
         updateAISize()
         syncStatusItemFlags()
@@ -247,6 +269,7 @@ class StatusBarController: NSObject {
     
     func restoreSystem() {
         guard systemStatusItem == nil else { return }
+        UserDefaults.standard.set(true, forKey: userDefaultsKeyShowSystem)
         setupSystemStatusItem()
         systemItemView?.update(snapshot: monitor.snapshot)
         syncStatusItemFlags()
@@ -349,71 +372,113 @@ class StatusBarController: NSObject {
     // MARK: - Right-Click Context Menu (Instant Restoration & Control Center)
     func showContextMenu(for view: NSView) {
         let menu = NSMenu(title: "Pulse")
+        menu.appearance = NSAppearance(named: .darkAqua)
+        menu.font = NSFont.systemFont(ofSize: 11.5, weight: .regular)
+        
+        // 0. Header (Brand title & Version)
+        let headerItem = NSMenuItem()
+        headerItem.isEnabled = false
+        headerItem.attributedTitle = NSAttributedString(
+            string: "Pulse  v1.5.1",
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: NSColor.tertiaryLabelColor
+            ]
+        )
+        menu.addItem(headerItem)
+        menu.addItem(NSMenuItem.separator())
         
         // 1. Toggle System Status Bar
-        let sysItem = NSMenuItem(
+        let sysItem = createMenuItem(
             title: "系统监控状态栏",
+            icon: "waveform.path.ecg",
             action: #selector(toggleSystemStatusItem),
-            keyEquivalent: ""
+            state: (systemStatusItem != nil) ? .on : .off
         )
-        sysItem.target = self
-        sysItem.state = (systemStatusItem != nil) ? .on : .off
         menu.addItem(sysItem)
         
         // 2. Toggle AI Status Bar
-        let aiItem = NSMenuItem(
+        let aiItem = createMenuItem(
             title: "AI 额度状态栏",
+            icon: "sparkles",
             action: #selector(toggleAIStatusItem),
-            keyEquivalent: ""
+            state: (aiStatusItem != nil) ? .on : .off
         )
-        aiItem.target = self
-        aiItem.state = (aiStatusItem != nil) ? .on : .off
         menu.addItem(aiItem)
         
         menu.addItem(NSMenuItem.separator())
         
         // 3. Open System Panel
-        let openSys = NSMenuItem(
+        let openSys = createMenuItem(
             title: "打开系统监控面板",
-            action: #selector(menuOpenSystemPanel),
-            keyEquivalent: ""
+            icon: "macwindow",
+            action: #selector(menuOpenSystemPanel)
         )
-        openSys.target = self
         menu.addItem(openSys)
         
         // 4. Open AI Panel
-        let openAI = NSMenuItem(
+        let openAI = createMenuItem(
             title: "打开 AI 额度中心",
-            action: #selector(menuOpenAIPanel),
-            keyEquivalent: ""
+            icon: "gauge.with.needle",
+            action: #selector(menuOpenAIPanel)
         )
-        openAI.target = self
         menu.addItem(openAI)
         
         menu.addItem(NSMenuItem.separator())
         
         // 5. Launch At Login (开机自启)
-        let loginItem = NSMenuItem(
+        let loginItem = createMenuItem(
             title: "开机自动启动",
+            icon: "arrow.clockwise",
             action: #selector(toggleLaunchAtLogin),
-            keyEquivalent: ""
+            state: LaunchAtLoginManager.shared.isEnabled ? .on : .off
         )
-        loginItem.target = self
-        loginItem.state = LaunchAtLoginManager.shared.isEnabled ? .on : .off
         menu.addItem(loginItem)
         
         menu.addItem(NSMenuItem.separator())
         
         // 6. Quit App
-        let quit = NSMenuItem(
+        let quit = createMenuItem(
             title: "退出 Pulse",
+            icon: "power",
             action: #selector(quitApp),
             keyEquivalent: "q"
         )
-        quit.target = self
         menu.addItem(quit)
         
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: view.bounds.height + 4), in: view)
+        // Position menu safely below the status bar (y = 0 is the bottom edge in unflipped AppKit coords)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -4), in: view)
+    }
+    
+    private func createMenuItem(
+        title: String,
+        icon: String? = nil,
+        action: Selector? = nil,
+        keyEquivalent: String = "",
+        state: NSControl.StateValue = .off
+    ) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+        item.target = self
+        item.state = state
+        
+        // Refined 11.5pt font (clean, compact, anti-bloat)
+        let attr = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11.5, weight: .regular)
+            ]
+        )
+        item.attributedTitle = attr
+        
+        // Crisp SF Symbol (scaled to 11pt)
+        if let icon = icon {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            if let img = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+                img.isTemplate = true
+                item.image = img
+            }
+        }
+        return item
     }
     
     @objc func toggleLaunchAtLogin() {

@@ -55,8 +55,8 @@
 
 | 架构版本 | 适用机型 | 下载安装包 |
 | :--- | :--- | :--- |
-| **Apple Silicon 专属版** | Mac mini / MacBook / iMac (M1, M2, M3, M4 芯片) | `Pulse-v1.5-AppleSilicon.dmg` |
-| **Universal 通用版** | 兼容所有 Apple Silicon 芯片 与 Intel 处理器 Mac | `Pulse-v1.5-Universal.dmg` |
+| **Apple Silicon 专属版** | Mac mini / MacBook / iMac (M1, M2, M3, M4 芯片) | `Pulse-v1.5.1-AppleSilicon.dmg` |
+| **Universal 通用版** | 兼容所有 Apple Silicon 芯片 与 Intel 处理器 Mac | `Pulse-v1.5.1-Universal.dmg` |
 
 > **提示**：下载 DMG 后，将 `Pulse.app` 拖入 `Applications` 应用程序文件夹即可。
 >
@@ -70,7 +70,7 @@
 
 ## 🔄 软件更新说明
 
-- **点击版本号直达**：在浮窗左下角直接点击 `v1.5 ↗` 徽标，即可一键在浏览器中打开最新 GitHub Releases 发布页面查看更新日志与下载最新包。
+- **点击版本号直达**：在浮窗左下角直接点击 `v1.5.1 ↗` 徽标，即可一键在浏览器中打开最新 GitHub Releases 发布页面查看更新日志与下载最新包。
 - **静默后台检测**：应用支持比对 GitHub Latest Release Tag，若有更新将在版本徽标旁点亮呼吸提示。
 
 ---
