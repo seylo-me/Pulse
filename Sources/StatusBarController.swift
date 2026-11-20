@@ -100,6 +100,7 @@ class StatusBarController: NSObject {
     // Independent Floating Panels
     private var systemPanel: PulsePanel!
     private var aiPanel: PulsePanel!
+    private var aiHosting: NSHostingView<AIPopupView>?
     
     private let monitor = SystemMonitor()
     private let quotaMgr = QuotaManager()
@@ -230,6 +231,7 @@ class StatusBarController: NSObject {
         quotaMgr.onActiveAIChanged = { [weak self] in
             DispatchQueue.main.async {
                 self?.updateAISize()
+                self?.updateAIPanelHeight(animated: true)
             }
         }
         
@@ -293,6 +295,7 @@ class StatusBarController: NSObject {
         container.autoresizingMask = [.width, .height]
         
         let aiHosting = NSHostingView(rootView: aiRoot)
+        self.aiHosting = aiHosting
         aiHosting.frame = aiRect
         aiHosting.focusRingType = .none
         aiHosting.autoresizingMask = [.width, .height]
@@ -400,37 +403,31 @@ class StatusBarController: NSObject {
         let source = quotaMgr.selectedAITab
         let aiProfile = quotaMgr.profile(for: source)
         
-        // Base chrome overhead:
-        // Header (54) + Tab Switcher (40) + Container top/bottom padding (10) + Footer (30) = 134 pt
-        let chromeHeight: CGFloat = 134.0
-        
-        // Layer 1: Account Card (Email, Keycap icon, Status pill)
-        let accountHeight: CGFloat = 56.0
-        
-        // Inter-layer spacing (2 * 11 = 22 pt)
-        let layerSpacing: CGFloat = 22.0
-        
-        // Layer 3: Storage / Config Path Card
-        let storageHeight: CGFloat = 34.0
-        
-        // Layer 2: Model Quota Gauges OR Provider Setup Slot (100% Content-Hugging, 零空白零滚动!)
-        let layer2Height: CGFloat
-        if !aiProfile.categories.isEmpty {
-            // 已配置活跃模型列表：Header (24) + padding (22) + 每个分类及进度条 (44 each)
-            let count = aiProfile.categories.count
-            layer2Height = 46.0 + CGFloat(count) * 44.0
+        // 精确匹配各个 AI Tab 内容视图高度（基于实机渲染尺寸测量）：
+        // - 未配置/无分类引导状态（Claude / DeepSeek 等）：329.0 pt
+        // - 1 组活跃配额分类（如 Codex 单模型通用配额）：329.0 pt
+        // - 每增加 1 组多模型配额分类（如 Antigravity 双模型组）：+107.0 pt，即 436.0 pt
+        // - 每个分类下的配额时间窗口（基准 2 个窗口）：超出或少于 2 个窗口每项差值 40.0 pt
+        var calculated: CGFloat
+        if aiProfile.categories.isEmpty {
+            calculated = 329.0
         } else {
-            // 未配置/待连接引导插槽
-            if source == .claude && source.isDetectedOnMachine {
-                // Claude 已检测到 CLI：标题 + 3行说明 + 3个操作按钮
-                layer2Height = 158.0
-            } else {
-                // 标准待连接：标题 + 2行说明 + 2个操作按钮
-                layer2Height = 124.0
+            calculated = 329.0 + CGFloat(max(0, aiProfile.categories.count - 1)) * 107.0
+            for cat in aiProfile.categories {
+                let winDiff = cat.windows.count - 2
+                calculated += CGFloat(winDiff) * 40.0
             }
         }
         
-        return chromeHeight + accountHeight + layerSpacing + layer2Height + storageHeight
+        // 若已有活跃的 aiHosting 并且具备实际渲染 fittingSize，取最大值彻底杜绝任何顶部或底部裁切
+        if let host = aiHosting {
+            let fitH = ceil(host.fittingSize.height)
+            if fitH >= 300 && fitH <= 650 {
+                return max(calculated, fitH)
+            }
+        }
+        
+        return calculated
     }
 
     func updateAIPanelHeight(animated: Bool = true) {
