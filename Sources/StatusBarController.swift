@@ -42,9 +42,6 @@ class FlippedContainerView: NSView {
 struct ScreenAdaptiveProfile {
     let panelWidth: CGFloat
     let systemPanelHeight: CGFloat
-    let aiAntigravityHeight: CGFloat
-    let aiCodexHeight: CGFloat
-    let aiCompactHeight: CGFloat
     let isCompact: Bool
     
     static var isLaptopDevice: Bool {
@@ -78,9 +75,6 @@ struct ScreenAdaptiveProfile {
     static let compact = ScreenAdaptiveProfile(
         panelWidth: 330,
         systemPanelHeight: 500,
-        aiAntigravityHeight: 410,
-        aiCodexHeight: 310,
-        aiCompactHeight: 280,
         isCompact: true
     )
     
@@ -89,9 +83,6 @@ struct ScreenAdaptiveProfile {
     static let standard = ScreenAdaptiveProfile(
         panelWidth: 360,
         systemPanelHeight: 532,
-        aiAntigravityHeight: 448,
-        aiCodexHeight: 336,
-        aiCompactHeight: 300,
         isCompact: false
     )
 }
@@ -406,15 +397,40 @@ class StatusBarController: NSObject {
     }
     
     private func currentAIPanelHeight(profile: ScreenAdaptiveProfile? = nil) -> CGFloat {
-        let prof = profile ?? ScreenAdaptiveProfile.current(for: aiPanel?.screen ?? NSScreen.main)
-        switch quotaMgr.selectedAITab {
-        case .antigravity:
-            return prof.aiAntigravityHeight
-        case .codex:
-            return prof.aiCodexHeight
-        case .claude, .deepseek:
-            return prof.aiCompactHeight
+        let source = quotaMgr.selectedAITab
+        let aiProfile = quotaMgr.profile(for: source)
+        
+        // Base chrome overhead:
+        // Header (54) + Tab Switcher (40) + Container top/bottom padding (10) + Footer (30) = 134 pt
+        let chromeHeight: CGFloat = 134.0
+        
+        // Layer 1: Account Card (Email, Keycap icon, Status pill)
+        let accountHeight: CGFloat = 56.0
+        
+        // Inter-layer spacing (2 * 11 = 22 pt)
+        let layerSpacing: CGFloat = 22.0
+        
+        // Layer 3: Storage / Config Path Card
+        let storageHeight: CGFloat = 34.0
+        
+        // Layer 2: Model Quota Gauges OR Provider Setup Slot (100% Content-Hugging, 零空白零滚动!)
+        let layer2Height: CGFloat
+        if !aiProfile.categories.isEmpty {
+            // 已配置活跃模型列表：Header (24) + padding (22) + 每个分类及进度条 (44 each)
+            let count = aiProfile.categories.count
+            layer2Height = 46.0 + CGFloat(count) * 44.0
+        } else {
+            // 未配置/待连接引导插槽
+            if source == .claude && source.isDetectedOnMachine {
+                // Claude 已检测到 CLI：标题 + 3行说明 + 3个操作按钮
+                layer2Height = 158.0
+            } else {
+                // 标准待连接：标题 + 2行说明 + 2个操作按钮
+                layer2Height = 124.0
+            }
         }
+        
+        return chromeHeight + accountHeight + layerSpacing + layer2Height + storageHeight
     }
 
     func updateAIPanelHeight(animated: Bool = true) {

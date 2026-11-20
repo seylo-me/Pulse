@@ -1011,17 +1011,6 @@ struct AIPopupView: View {
     var onClose: () -> Void = {}
     var onExit: () -> Void = {}
     
-    private var dynamicAIPanelHeight: CGFloat {
-        switch quotaMgr.selectedAITab {
-        case .antigravity:
-            return 448
-        case .codex:
-            return 336
-        case .claude, .deepseek:
-            return 300
-        }
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
             aiHeaderView
@@ -1031,20 +1020,17 @@ struct AIPopupView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 6)
             
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 10) {
-                    let source = quotaMgr.selectedAITab
-                    AIProfileQuotaCardView(
-                        source: source,
-                        profile: quotaMgr.profile(for: source)
-                    )
-                    .id(source)
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, 4)
-                .padding(.bottom, 10)
+            VStack(spacing: 10) {
+                let source = quotaMgr.selectedAITab
+                AIProfileQuotaCardView(
+                    source: source,
+                    profile: quotaMgr.profile(for: source)
+                )
+                .id(source)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 14)
+            .padding(.top, 4)
+            .padding(.bottom, 6)
             .transaction { $0.animation = nil }
             
             aiFooterView
