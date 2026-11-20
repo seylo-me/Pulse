@@ -47,44 +47,48 @@ struct ScreenAdaptiveProfile {
     let aiCompactHeight: CGFloat
     let isCompact: Bool
     
+    static var isLaptopDevice: Bool {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let list = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as NSArray
+        return list.count > 0 // MacBook 笔记本有电池 (list > 0)；iMac/Mac mini/Mac Pro 等台式机无电池 (list == 0)
+    }
+    
     static func current(for screen: NSScreen?) -> ScreenAdaptiveProfile {
         let scr = screen ?? NSScreen.main ?? NSScreen.screens.first
         guard let s = scr else {
-            return ScreenAdaptiveProfile.compact
+            return ScreenAdaptiveProfile.standard
         }
         
         let visibleH = s.visibleFrame.height
-        var isBuiltin = false
-        if let screenNumber = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID {
-            isBuiltin = (CGDisplayIsBuiltin(screenNumber) != 0)
-        }
+        let isLaptop = isLaptopDevice
         
-        // 笔记本屏幕判定逻辑：
-        // 1. 凡是 MacBook 内置屏 (CGDisplayIsBuiltin)
-        // 2. 或可视纵向高度 <= 1000 pt 的任何屏幕（如 13/14 寸 MacBook 默认 Retina 缩放为 900~982pt）
-        if isBuiltin || visibleH <= 1000 {
+        // 笔记本紧凑模式仅在满足以下条件时生效：
+        // 1. 真实运行于 MacBook 笔记本硬件 (拥有内置电池检测源)
+        // 2. 且当前屏幕可视高度 <= 1000 pt (13/14/16寸笔记本内置小屏)
+        // 台式机 (iMac 27", Mac mini, Mac Studio, Mac Pro) 或外接 4K/5K 大显示器一律使用宽幅标准尺寸！
+        if isLaptop && visibleH <= 1000 {
             return ScreenAdaptiveProfile.compact
         } else {
             return ScreenAdaptiveProfile.standard
         }
     }
     
-    // 💻 笔记本专属紧凑模式 (Compact Profile)
-    // 宽度 320 pt 与 macOS 原生控制中心保持一致；高度 468 pt 确保屏幕垂直占比在 50% 左右，绝不遮挡大半屏幕
+    // 💻 笔记本专属紧凑模式 (Compact Profile) - 用于 MacBook 小屏
+    // 宽度 330 pt，高度 540 pt（刚好完整展示硬件监控卡片）
     static let compact = ScreenAdaptiveProfile(
-        panelWidth: 320,
-        systemPanelHeight: 468,
-        aiAntigravityHeight: 400,
+        panelWidth: 330,
+        systemPanelHeight: 540,
+        aiAntigravityHeight: 410,
         aiCodexHeight: 310,
         aiCompactHeight: 280,
         isCompact: true
     )
     
-    // 🖥️ 外部大屏专属舒适模式 (Standard Profile)
-    // 适用于 24/27/32 寸 4K/5K 等高分辨率大显示器，宽度 356 pt，高度 520 pt
+    // 🖥️ 台式机与大屏专属标准模式 (Standard Profile) - 用于 27" 5K iMac / 外接 4K/5K 显示器
+    // 宽度 360 pt，高度 580 pt，宽松呼吸感，CPU/GPU 完整文字完全展示不打折
     static let standard = ScreenAdaptiveProfile(
-        panelWidth: 356,
-        systemPanelHeight: 520,
+        panelWidth: 360,
+        systemPanelHeight: 580,
         aiAntigravityHeight: 448,
         aiCodexHeight: 336,
         aiCompactHeight: 300,
@@ -267,14 +271,19 @@ class StatusBarController: NSObject {
             onClose: { [weak self] in self?.closeSystemPanel() },
             onExit: { [weak self] in self?.exitSystem() }
         )
+        let sysContainer = FlippedContainerView(frame: sysRect)
+        sysContainer.wantsLayer = true
+        sysContainer.layer?.cornerRadius = 16
+        sysContainer.layer?.masksToBounds = true
+        sysContainer.autoresizingMask = [.width, .height]
+        
         let sysHosting = NSHostingView(rootView: sysRoot)
         sysHosting.frame = sysRect
         sysHosting.focusRingType = .none
-        sysHosting.wantsLayer = true
-        sysHosting.layer?.cornerRadius = 16
-        sysHosting.layer?.masksToBounds = true
         sysHosting.autoresizingMask = [.width, .height]
-        systemPanel.contentView = sysHosting
+        sysHosting.wantsLayer = true
+        sysContainer.addSubview(sysHosting)
+        systemPanel.contentView = sysContainer
         
         // 2. AI Panel (Independent Quota Center with Selector)
         let aiHeight = currentAIPanelHeight(profile: initialProfile)
