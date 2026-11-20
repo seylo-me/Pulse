@@ -146,15 +146,32 @@ struct ThemeColors {
     static let accentOrange = Color(hex: 0xE46C10)                  // Updated Orange (#E46C10)
     static let accentGreen = Color(hex: 0x30D158)                   // Status normal green dot
 
-    // Figma 93:473 color refinement, 2026-11-20.
+    // Figma 93:473 / 101:1514 color refinement, 2026-11-20.
     static let accentViolet = Color(hex: 0x875AF6)
     static let selectionFill = Color(hex: 0x8C87D0, alpha: 31.0 / 255.0)
     static let selectionBorder = Color.black.opacity(41.0 / 255.0)
     static let accountAction = Color(hex: 0x2563EB)
-    static let quotaHealthy = Color(hex: 0x30AC58)                 // Figma #30AC58; 50% and above
+    static let quotaHealthy = Color(hex: 0x57BF79)                 // Figma #57BF79; 50% and above
     static let quotaWarning = Color(hex: 0xD3722F)                 // Figma #D3722F; above 20% and below 50%
     static let quotaWarningText = Color.white                      // Percentage label pure white
     static let quotaCritical = Color(hex: 0xD3422F)                // Figma #D3422F; 20% and below
+
+    // Figma 101:1514 Linear Gradients
+    static let quotaGradientHealthy = LinearGradient(
+        gradient: Gradient(colors: [Color(hex: 0x1FE3D2), Color(hex: 0x57BF79)]),
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+    static let quotaGradientWarning = LinearGradient(
+        gradient: Gradient(colors: [Color(hex: 0xDEB546), Color(hex: 0xD3722F)]),
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+    static let quotaGradientCritical = LinearGradient(
+        gradient: Gradient(colors: [Color(hex: 0xE61616), Color(hex: 0xD3422F)]),
+        startPoint: .leading,
+        endPoint: .trailing
+    )
 
     
     // ── High-Contrast Industrial Typography

@@ -1484,18 +1484,18 @@ struct AIProfileQuotaCardView: View {
                                         .foregroundColor(ThemeColors.textSecondary)
                                         .frame(width: 22, alignment: .leading)
                                     
-                                    // 6px tactile progress bar with pill ends
+                                    // 4px tactile progress bar with pill ends (Figma 101:1514)
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
                                             Capsule()
                                                 .fill(ThemeColors.trackBackground)
-                                                .frame(height: 6)
+                                                .frame(height: 4)
                                             Capsule()
                                                 .fill(barColor(for: win))
-                                                .frame(width: max(4, geo.size.width * CGFloat(min(1.0, win.percent / 100.0))), height: 6)
+                                                .frame(width: max(4, geo.size.width * CGFloat(min(1.0, win.percent / 100.0))), height: 4)
                                         }
                                     }
-                                    .frame(height: 6)
+                                    .frame(height: 4)
                                     
                                     Text(displayPercent(win.percent))
                                         .font(.sfSans(10, weight: .bold, design: .monospaced))
@@ -1732,14 +1732,14 @@ struct AIProfileQuotaCardView: View {
         }
     }
     
-    // Figma examples: 69–100% green, 49% orange, 20% red.
-    private func barColor(for win: RollingWindowQuota) -> Color {
+    // Figma 101:1514 Quota Linear Gradients
+    private func barColor(for win: RollingWindowQuota) -> LinearGradient {
         if win.isExhausted || win.percent <= 20.0 {
-            return ThemeColors.quotaCritical
+            return ThemeColors.quotaGradientCritical
         } else if win.percent < 50.0 {
-            return ThemeColors.quotaWarning
+            return ThemeColors.quotaGradientWarning
         } else {
-            return ThemeColors.quotaHealthy
+            return ThemeColors.quotaGradientHealthy
         }
     }
 
