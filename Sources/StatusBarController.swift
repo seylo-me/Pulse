@@ -74,10 +74,10 @@ struct ScreenAdaptiveProfile {
     }
     
     // 💻 笔记本专属紧凑模式 (Compact Profile) - 用于 MacBook 小屏
-    // 宽度 330 pt，高度 540 pt（刚好完整展示硬件监控卡片）
+    // 宽度 330 pt，高度 500 pt（严丝合缝紧凑贴合，无底部多余空隙）
     static let compact = ScreenAdaptiveProfile(
         panelWidth: 330,
-        systemPanelHeight: 540,
+        systemPanelHeight: 500,
         aiAntigravityHeight: 410,
         aiCodexHeight: 310,
         aiCompactHeight: 280,
@@ -85,10 +85,10 @@ struct ScreenAdaptiveProfile {
     )
     
     // 🖥️ 台式机与大屏专属标准模式 (Standard Profile) - 用于 27" 5K iMac / 外接 4K/5K 显示器
-    // 宽度 360 pt，高度 580 pt，宽松呼吸感，CPU/GPU 完整文字完全展示不打折
+    // 宽度 360 pt，高度 532 pt（精准包裹 5 张卡片与底部版本号，消除底部多余空白）
     static let standard = ScreenAdaptiveProfile(
         panelWidth: 360,
-        systemPanelHeight: 580,
+        systemPanelHeight: 532,
         aiAntigravityHeight: 448,
         aiCodexHeight: 336,
         aiCompactHeight: 300,
