@@ -59,26 +59,26 @@ class SystemStatusBarView: NSView {
         drawUpChevron(x: arrowX, midY: row1Y + 4.8, color: iconColor)
         drawDownChevron(x: arrowX, midY: row2Y + 4.8, color: iconColor)
         
-        // ── 2. SSD 栏 (x: 46 ... 82)
-        let ssdCenterX: CGFloat = 46.0 + (ssdWidth / 2.0)
-        drawTextCentered("SSD", centerX: ssdCenterX, y: row1Y, font: fontSmall, color: secondaryColor)
-        let ssdVal = String(format: "%.0f%%", snapshot.diskUsage)
-        let ssdColor = snapshot.diskUsage > 85 ? NSColor.systemRed : primaryColor
-        drawTextCentered(ssdVal, centerX: ssdCenterX, y: row2Y, font: fontRegular, color: ssdColor)
-        
-        // ── 3. CPU 栏 (x: 82 ... 116)
-        let cpuCenterX: CGFloat = 82.0 + (cpuWidth / 2.0)
+        // ── 2. CPU 栏 (x: 46 ... 80)
+        let cpuCenterX: CGFloat = 46.0 + (cpuWidth / 2.0)
         drawTextCentered("CPU", centerX: cpuCenterX, y: row1Y, font: fontSmall, color: secondaryColor)
         let cpuVal = String(format: "%.0f%%", snapshot.cpuUsage)
         let cpuColor = snapshot.cpuUsage > 80 ? NSColor.systemRed : (snapshot.cpuUsage > 50 ? NSColor.systemOrange : primaryColor)
         drawTextCentered(cpuVal, centerX: cpuCenterX, y: row2Y, font: fontRegular, color: cpuColor)
         
-        // ── 4. MEM 栏 (x: 116 ... 152)
-        let memCenterX: CGFloat = 116.0 + (memWidth / 2.0)
+        // ── 3. MEM 栏 (x: 80 ... 116)
+        let memCenterX: CGFloat = 46.0 + cpuWidth + (memWidth / 2.0)
         drawTextCentered("MEM", centerX: memCenterX, y: row1Y, font: fontSmall, color: secondaryColor)
         let memVal = String(format: "%.0f%%", snapshot.memUsage)
         let memColor = snapshot.memUsage > 85 ? NSColor.systemRed : primaryColor
         drawTextCentered(memVal, centerX: memCenterX, y: row2Y, font: fontRegular, color: memColor)
+        
+        // ── 4. SSD 栏 (x: 116 ... 152)
+        let ssdCenterX: CGFloat = 46.0 + cpuWidth + memWidth + (ssdWidth / 2.0)
+        drawTextCentered("SSD", centerX: ssdCenterX, y: row1Y, font: fontSmall, color: secondaryColor)
+        let ssdVal = String(format: "%.0f%%", snapshot.diskUsage)
+        let ssdColor = snapshot.diskUsage > 85 ? NSColor.systemRed : primaryColor
+        drawTextCentered(ssdVal, centerX: ssdCenterX, y: row2Y, font: fontRegular, color: ssdColor)
     }
     
     override func mouseDown(with event: NSEvent) {
@@ -262,20 +262,18 @@ class AIStatusBarView: NSView {
             if let icon = agyIcon {
                 icon.draw(in: iconRect)
             } else {
-                drawText("✦", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0xA44BFD))
+                drawText("✦", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x9054FF))
             }
         case .codex:
             if let icon = cdxIcon {
                 icon.draw(in: iconRect)
             } else {
-                drawText("⚡", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x38BDF8))
+                drawText("⚡", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x1FE3D2))
             }
         case .claude:
-            drawText("✳", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10.5, weight: .bold), color: NSColor(hex: 0xD97706))
-        case .grok:
-            drawText("𝕏", at: NSPoint(x: 5.5, y: 3.5), font: NSFont.systemFont(ofSize: 9.5, weight: .heavy), color: NSColor(hex: 0xF43F5E))
+            drawText("✳", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10.5, weight: .bold), color: NSColor(hex: 0xE46C10))
         case .deepseek:
-            drawText("◎", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x0EA5E9))
+            drawText("◎", at: NSPoint(x: 5.0, y: 3.5), font: NSFont.systemFont(ofSize: 10, weight: .bold), color: NSColor(hex: 0x1FE3D2))
         }
         
         // Draw text

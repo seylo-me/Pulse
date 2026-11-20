@@ -26,7 +26,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
     case antigravity = "antigravity"
     case codex = "codex"
     case claude = "claude"
-    case grok = "grok"
     case deepseek = "deepseek"
     
     var title: String {
@@ -34,7 +33,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
         case .antigravity: return "Antigravity"
         case .codex: return "Codex"
         case .claude: return "Claude"
-        case .grok: return "Grok"
         case .deepseek: return "DeepSeek"
         }
     }
@@ -44,7 +42,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
         case .antigravity: return "Google AI"
         case .codex: return "OpenAI"
         case .claude: return "Anthropic"
-        case .grok: return "xAI"
         case .deepseek: return "DeepSeek"
         }
     }
@@ -54,18 +51,16 @@ enum ActiveAISource: String, CaseIterable, Codable {
         case .antigravity: return "sparkles"
         case .codex: return "bolt.fill"
         case .claude: return "asterisk"
-        case .grok: return "slash.circle"
         case .deepseek: return "circle.hexagongrid.fill"
         }
     }
     
     var accentHex: UInt32 {
         switch self {
-        case .antigravity: return 0xA44BFD // Vibrant Purple
-        case .codex: return 0x38BDF8       // Codex Sky Blue
-        case .claude: return 0xD97706      // Claude Terracotta / Amber
-        case .grok: return 0xF43F5E        // Grok Crimson / Red
-        case .deepseek: return 0x0EA5E9    // DeepSeek Electric Cyan
+        case .antigravity: return 0x9054FF // Updated Purple
+        case .codex: return 0x1FE3D2       // Updated Blue
+        case .claude: return 0xE46C10      // Updated Orange
+        case .deepseek: return 0x1FE3D2    // Updated Cyan / Blue
         }
     }
     
@@ -84,9 +79,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
                    FileManager.default.fileExists(atPath: home + "/.claude.json") ||
                    FileManager.default.fileExists(atPath: home + "/.claude") ||
                    FileManager.default.fileExists(atPath: home + "/Library/Application Support/Claude")
-        case .grok:
-            return FileManager.default.fileExists(atPath: home + "/.grok") ||
-                   FileManager.default.fileExists(atPath: home + "/.config/grok")
         case .deepseek:
             return FileManager.default.fileExists(atPath: home + "/.deepseek") ||
                    FileManager.default.fileExists(atPath: home + "/.config/deepseek")
@@ -109,8 +101,6 @@ enum ActiveAISource: String, CaseIterable, Codable {
                 return true
             }
             return false
-        case .grok:
-            return FileManager.default.fileExists(atPath: home + "/.grok/credentials.json")
         case .deepseek:
             return FileManager.default.fileExists(atPath: home + "/.deepseek/config.json")
         }

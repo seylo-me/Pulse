@@ -5,7 +5,6 @@ class QuotaManager: ObservableObject {
     @Published var antigravityProfile: AIProfileQuota
     @Published var codexProfile: AIProfileQuota
     @Published var claudeProfile: AIProfileQuota
-    @Published var grokProfile: AIProfileQuota
     @Published var deepseekProfile: AIProfileQuota
     
     private var rawAccountName: String = ""
@@ -13,9 +12,14 @@ class QuotaManager: ObservableObject {
     private var rawAccountPlan: String = "Google AI Pro"
     
     // Independent AI Selection: which one to view in AI Window, and which ONE to display in Status Bar!
-    @Published var selectedAITab: ActiveAISource = .antigravity
+    @Published var selectedAITab: ActiveAISource = .antigravity {
+        didSet {
+            onAITabChanged?()
+        }
+    }
     @Published var activeStatusAI: ActiveAISource = .antigravity
     var onActiveAIChanged: (() -> Void)?
+    var onAITabChanged: (() -> Void)?
     
     // Status Bar Values for the active AI capsule
     @Published var antigravityModelName: String = "Antigravity"
@@ -62,7 +66,6 @@ class QuotaManager: ObservableObject {
         case .antigravity: return antigravityProfile
         case .codex: return codexProfile
         case .claude: return claudeProfile
-        case .grok: return grokProfile
         case .deepseek: return deepseekProfile
         }
     }
@@ -75,8 +78,6 @@ class QuotaManager: ObservableObject {
             return codexCapsuleText
         case .claude:
             return claudeProfile.isActive ? "Claude · 已就绪" : (ActiveAISource.claude.isDetectedOnMachine ? "Claude · 待登录" : "Claude · 待连接")
-        case .grok:
-            return grokProfile.isActive ? "Grok · 2h: 80% · xAI" : "Grok · 待连接"
         case .deepseek:
             return deepseekProfile.isActive ? "DeepSeek · 100% · R1" : "DeepSeek · 待连接"
         }
@@ -88,6 +89,10 @@ class QuotaManager: ObservableObject {
         onActiveAIChanged?()
     }
     
+    private func getCodexModelDisplayName() -> String {
+        return "Codex 全模型通用配额"
+    }
+
     init() {
         self.antigravityProfile = AIProfileQuota(
             brandName: "Antigravity",
@@ -111,15 +116,6 @@ class QuotaManager: ObservableObject {
             brandName: "Anthropic Claude",
             accountEmail: "未检测到本地凭据",
             accountType: "支持 ~/.claude.json 或 API Key",
-            isActive: false,
-            lastRefreshed: "刚刚",
-            categories: []
-        )
-        
-        self.grokProfile = AIProfileQuota(
-            brandName: "xAI Grok",
-            accountEmail: "未检测到本地凭据",
-            accountType: "支持 ~/.grok/credentials.json",
             isActive: false,
             lastRefreshed: "刚刚",
             categories: []
@@ -345,17 +341,26 @@ class QuotaManager: ObservableObject {
         
         // 4. Read ~/.config/codex/usage.json if available
         let cdxUsagePath = NSHomeDirectory() + "/.config/codex/usage.json"
+        let initialCodexModel = self.getCodexModelDisplayName()
         if let data = FileManager.default.contents(atPath: cdxUsagePath),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let ex = json["is_exhausted"] as? Bool {
-                self.isCodexExhausted = ex
-            }
-            if let p7d = json["7d_percent"] as? Double {
-                self.codex7dStr = "\(Int(p7d))%"
-            }
-            if let p5h = json["5h_percent"] as? Double {
-                self.codex5hStr = "\(Int(p5h))%"
-            }
+            let ex = (json["is_exhausted"] as? Bool) ?? false
+            self.isCodexExhausted = ex
+            let p7d = (json["7d_percent"] as? Double) ?? 100.0
+            let p5h = (json["5h_percent"] as? Double) ?? 100.0
+            self.codex7dStr = "\(Int(p7d))%"
+            self.codex5hStr = "\(Int(p5h))%"
+            let r7d = (json["7d_reset"] as? String) ?? "配额充足 · 100% 剩余未消耗"
+            let r5h = (json["5h_reset"] as? String) ?? "配额充足 · 100% 剩余未消耗"
+            self.codexProfile.categories = [
+                ModelCategoryQuota(
+                    categoryName: initialCodexModel,
+                    windows: [
+                        RollingWindowQuota(windowLabel: "7d", percent: p7d, resetText: r7d, isExhausted: ex),
+                        RollingWindowQuota(windowLabel: "5h", percent: p5h, resetText: r5h, isExhausted: ex)
+                    ]
+                )
+            ]
         } else {
             self.isCodexExhausted = false
             self.codex7dStr = "100%"
@@ -398,34 +403,7 @@ class QuotaManager: ObservableObject {
             self.claudeProfile.categories = []
         }
         
-        // 6. Dynamic Grok Detection (Checks ~/.grok or ~/.config/grok)
-        let grokDirPath = NSHomeDirectory() + "/.grok"
-        let grokConfigPath = NSHomeDirectory() + "/.config/grok"
-        if FileManager.default.fileExists(atPath: grokDirPath) || FileManager.default.fileExists(atPath: grokConfigPath) {
-            self.grokProfile.accountEmail = "xAI 本地配置已连接"
-            self.grokProfile.accountType = "SuperGrok · X Premium+"
-            self.grokProfile.isActive = true
-            self.grokProfile.categories = [
-                ModelCategoryQuota(
-                    categoryName: "Grok 3 & Grok 2",
-                    windows: [
-                        RollingWindowQuota(
-                            windowLabel: "2h",
-                            percent: 100.0,
-                            resetText: "配额充足 · 100% 剩余",
-                            isExhausted: false
-                        )
-                    ]
-                )
-            ]
-        } else {
-            self.grokProfile.accountEmail = "未检测到本地凭据"
-            self.grokProfile.accountType = "支持 ~/.grok/credentials.json"
-            self.grokProfile.isActive = false
-            self.grokProfile.categories = []
-        }
-        
-        // 7. Dynamic DeepSeek Detection (Checks ~/.deepseek or ~/.config/deepseek)
+        // 6. Dynamic DeepSeek Detection (Checks ~/.deepseek or ~/.config/deepseek)
         let deepseekDirPath = NSHomeDirectory() + "/.deepseek"
         let deepseekConfigPath = NSHomeDirectory() + "/.config/deepseek"
         if FileManager.default.fileExists(atPath: deepseekDirPath) || FileManager.default.fileExists(atPath: deepseekConfigPath) {
@@ -783,19 +761,13 @@ class QuotaManager: ObservableObject {
                     p5hReset = "周期配额已使用 \(Int(primaryUsed))%"
                 }
                 
+                let codexModelName = self.getCodexModelDisplayName()
                 self.codexProfile.categories = [
                     ModelCategoryQuota(
-                        categoryName: "GPT-5.6 & Codex Models",
+                        categoryName: codexModelName,
                         windows: [
                             RollingWindowQuota(windowLabel: "7d", percent: secondaryRem, resetText: p7dReset, isExhausted: isExhausted),
                             RollingWindowQuota(windowLabel: "5h", percent: primaryRem, resetText: p5hReset, isExhausted: isExhausted)
-                        ]
-                    ),
-                    ModelCategoryQuota(
-                        categoryName: "Reasoning Models (o1 / o3)",
-                        windows: [
-                            RollingWindowQuota(windowLabel: "7d", percent: 100.0, resetText: "配额充足 · 100% 剩余未消耗", isExhausted: false),
-                            RollingWindowQuota(windowLabel: "1d", percent: 100.0, resetText: "每日限制未超额", isExhausted: false)
                         ]
                     )
                 ]
@@ -803,7 +775,7 @@ class QuotaManager: ObservableObject {
                 
                 // Write back fresh cache to ~/.config/codex/usage.json
                 let cacheDict: [String: Any] = [
-                    "model": "GPT-5.6 & Codex Models",
+                    "model": codexModelName,
                     "status": isExhausted ? "已无额度" : "Active",
                     "is_exhausted": isExhausted,
                     "7d_percent": secondaryRem,

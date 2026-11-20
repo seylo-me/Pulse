@@ -20,6 +20,7 @@ class PulsePanel: NSPanel {
         self.appearance = NSAppearance(named: .darkAqua)
         self.sharingType = .readOnly
         self.initialFirstResponder = nil
+        self.animationBehavior = .none
     }
     
     override var canBecomeKey: Bool { true }
@@ -30,6 +31,11 @@ class PulsePanel: NSPanel {
         super.becomeKey()
         self.makeFirstResponder(nil)
     }
+}
+
+// MARK: - Flipped Container to Lock Panel Coordinates to Top-Left
+class FlippedContainerView: NSView {
+    override var isFlipped: Bool { true }
 }
 
 // MARK: - Status Bar Controller (Two Independent Items: System & Single AI Capsule)
@@ -189,11 +195,15 @@ class StatusBarController: NSObject {
                 self?.aiPanel?.level = isPinned ? .statusBar : .floating
             }
         }
+        
+        quotaMgr.onAITabChanged = { [weak self] in
+            self?.updateAIPanelHeight(animated: true)
+        }
     }
     
     private func setupPanels() {
         // 1. System Panel (Traffic & Hardware only - 100% Fit in One Screen)
-        let sysRect = NSRect(x: 0, y: 0, width: 360, height: 535)
+        let sysRect = NSRect(x: 0, y: 0, width: 360, height: 540)
         systemPanel = PulsePanel(contentRect: sysRect)
         let sysRoot = SystemPopupView(
             monitor: monitor,
@@ -203,13 +213,14 @@ class StatusBarController: NSObject {
         )
         let sysHosting = NSHostingView(rootView: sysRoot)
         sysHosting.frame = sysRect
+        sysHosting.focusRingType = .none
         sysHosting.wantsLayer = true
         sysHosting.layer?.cornerRadius = 16
         sysHosting.layer?.masksToBounds = true
         systemPanel.contentView = sysHosting
         
         // 2. AI Panel (Independent Quota Center with Selector)
-        let aiRect = NSRect(x: 0, y: 0, width: 360, height: 520)
+        let aiRect = NSRect(x: 0, y: 0, width: 360, height: 448)
         aiPanel = PulsePanel(contentRect: aiRect)
         let aiRoot = AIPopupView(
             quotaMgr: quotaMgr,
@@ -217,17 +228,24 @@ class StatusBarController: NSObject {
             onClose: { [weak self] in self?.closeAIPanel() },
             onExit: { [weak self] in self?.exitAI() }
         )
+        let container = FlippedContainerView(frame: aiRect)
+        container.wantsLayer = true
+        container.layer?.cornerRadius = 16
+        container.layer?.masksToBounds = true
+        container.autoresizingMask = [.width, .height]
+        
         let aiHosting = NSHostingView(rootView: aiRoot)
         aiHosting.frame = aiRect
+        aiHosting.focusRingType = .none
         aiHosting.autoresizingMask = [.width, .height]
         aiHosting.wantsLayer = true
-        aiHosting.layer?.cornerRadius = 16
-        aiHosting.layer?.masksToBounds = true
-        aiPanel.contentView = aiHosting
+        container.addSubview(aiHosting)
+        aiPanel.contentView = container
     }
     
     // MARK: - Independent Component Exits & Restorations (Mutual Independence - 互不影响 & 记住用户选择)
     func exitAI() {
+        guard systemStatusItem != nil else { return } // 至少保留一个状态栏项目，防止完全无入口退出
         closeAIPanel()
         if let item = aiStatusItem {
             NSStatusBar.system.removeStatusItem(item)
@@ -236,14 +254,10 @@ class StatusBarController: NSObject {
         }
         UserDefaults.standard.set(false, forKey: userDefaultsKeyShowAI)
         syncStatusItemFlags()
-        
-        // If system monitor was also exited, terminate the process
-        if systemStatusItem == nil {
-            NSApplication.shared.terminate(nil)
-        }
     }
     
     func exitSystem() {
+        guard aiStatusItem != nil else { return } // 至少保留一个状态栏项目，防止完全无入口退出
         closeSystemPanel()
         if let item = systemStatusItem {
             NSStatusBar.system.removeStatusItem(item)
@@ -252,11 +266,6 @@ class StatusBarController: NSObject {
         }
         UserDefaults.standard.set(false, forKey: userDefaultsKeyShowSystem)
         syncStatusItemFlags()
-        
-        // If AI monitor was also exited, terminate the process
-        if aiStatusItem == nil {
-            NSApplication.shared.terminate(nil)
-        }
     }
     
     func restoreAI() {
@@ -327,6 +336,41 @@ class StatusBarController: NSObject {
         }
     }
     
+    private func currentAIPanelHeight() -> CGFloat {
+        switch quotaMgr.selectedAITab {
+        case .antigravity:
+            return 448
+        case .codex:
+            return 336
+        case .claude, .deepseek:
+            return 300
+        }
+    }
+
+    func updateAIPanelHeight(animated: Bool = true) {
+        guard aiPanel.isVisible else { return }
+        let height = currentAIPanelHeight()
+        
+        // 彻底锁定 X 坐标与顶边 Y 坐标，绝不产生水平漂移与顶部震颤
+        let x = aiPanel.frame.origin.x
+        let topEdge = aiPanel.frame.maxY
+        let y = topEdge - height
+        let targetRect = NSRect(x: x, y: y, width: 360, height: height)
+        
+        if abs(aiPanel.frame.height - height) < 1.0 { return }
+        
+        if animated {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.20
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                ctx.allowsImplicitAnimation = true
+                aiPanel.animator().setFrame(targetRect, display: true)
+            }
+        } else {
+            aiPanel.setFrame(targetRect, display: true)
+        }
+    }
+
     // Toggle Independent AI Panel
     func handleAIClick() {
         if aiStatusItem == nil {
@@ -344,7 +388,7 @@ class StatusBarController: NSObject {
             quotaMgr.fetchCodexLiveQuota(force: true)
             
             if let button = item.button {
-                positionPanel(aiPanel, near: button, panelWidth: 360, panelHeight: 520)
+                positionPanel(aiPanel, near: button, panelWidth: 360, panelHeight: currentAIPanelHeight())
             }
             aiPanel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -379,7 +423,7 @@ class StatusBarController: NSObject {
         let headerItem = NSMenuItem()
         headerItem.isEnabled = false
         headerItem.attributedTitle = NSAttributedString(
-            string: "Pulse  v1.5.1",
+            string: "Pulse  v1.5.2",
             attributes: [
                 .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold),
                 .foregroundColor: NSColor.tertiaryLabelColor
@@ -395,6 +439,10 @@ class StatusBarController: NSObject {
             action: #selector(toggleSystemStatusItem),
             state: (systemStatusItem != nil) ? .on : .off
         )
+        // 至少保留一个状态栏项目，若仅剩系统监控则不可取消勾选
+        if systemStatusItem != nil && aiStatusItem == nil {
+            sysItem.isEnabled = false
+        }
         menu.addItem(sysItem)
         
         // 2. Toggle AI Status Bar
@@ -404,29 +452,15 @@ class StatusBarController: NSObject {
             action: #selector(toggleAIStatusItem),
             state: (aiStatusItem != nil) ? .on : .off
         )
+        // 至少保留一个状态栏项目，若仅剩 AI 额度则不可取消勾选
+        if aiStatusItem != nil && systemStatusItem == nil {
+            aiItem.isEnabled = false
+        }
         menu.addItem(aiItem)
         
         menu.addItem(NSMenuItem.separator())
         
-        // 3. Open System Panel
-        let openSys = createMenuItem(
-            title: "打开系统监控面板",
-            icon: "macwindow",
-            action: #selector(menuOpenSystemPanel)
-        )
-        menu.addItem(openSys)
-        
-        // 4. Open AI Panel
-        let openAI = createMenuItem(
-            title: "打开 AI 额度中心",
-            icon: "gauge.with.needle",
-            action: #selector(menuOpenAIPanel)
-        )
-        menu.addItem(openAI)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // 5. Launch At Login (开机自启)
+        // 3. Launch At Login (开机自启)
         let loginItem = createMenuItem(
             title: "开机自动启动",
             icon: "arrow.clockwise",
@@ -437,7 +471,7 @@ class StatusBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        // 6. Quit App
+        // 4. Quit App
         let quit = createMenuItem(
             title: "退出 Pulse",
             icon: "power",
@@ -487,6 +521,7 @@ class StatusBarController: NSObject {
     
     @objc func toggleSystemStatusItem() {
         if systemStatusItem != nil {
+            guard aiStatusItem != nil else { return } // 保护：不能两个都取消勾选
             exitSystem()
         } else {
             restoreSystem()
@@ -495,24 +530,11 @@ class StatusBarController: NSObject {
     
     @objc func toggleAIStatusItem() {
         if aiStatusItem != nil {
+            guard systemStatusItem != nil else { return } // 保护：不能两个都取消勾选
             exitAI()
         } else {
             restoreAI()
         }
-    }
-    
-    @objc func menuOpenSystemPanel() {
-        if systemStatusItem == nil {
-            restoreSystem()
-        }
-        handleSystemClick(tab: .traffic)
-    }
-    
-    @objc func menuOpenAIPanel() {
-        if aiStatusItem == nil {
-            restoreAI()
-        }
-        handleAIClick()
     }
     
     @objc func quitApp() {
@@ -637,17 +659,17 @@ class StatusBarController: NSObject {
         updateAISize()
         
         // 4. Snapshot System Tabs (Traffic & Hardware)
-        let sysTabs: [(SystemTab, String)] = [
-            (.traffic, "tab_traffic_nothing.png"),
-            (.hardware, "tab_hardware_accents.png")
+        let sysTabs: [(SystemTab, String, Double, Double)] = [
+            (.traffic, "tab_traffic_nothing.png", 0.1, 0.6),
+            (.hardware, "tab_hardware_accents.png", 0.9, 1.4)
         ]
-        for (idx, (tab, filename)) in sysTabs.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(idx) * 0.4) { [weak self] in
+        for (tab, filename, triggerDelay, captureDelay) in sysTabs {
+            DispatchQueue.main.asyncAfter(deadline: .now() + triggerDelay) { [weak self] in
                 guard let self = self else { return }
                 self.monitor.systemTab = tab
                 self.monitor.isPanelVisible = true
                 self.systemPanel.makeKeyAndOrderFront(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + (captureDelay - triggerDelay)) { [weak self] in
                     guard let self = self, let view = self.systemPanel.contentView else { return }
                     if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                         view.cacheDisplay(in: view.bounds, to: rep)
@@ -659,24 +681,26 @@ class StatusBarController: NSObject {
             }
         }
         
-        // 5. Snapshot AI Tabs (All 5 Multi-AI Providers)
-        let aiTabs: [(ActiveAISource, String)] = [
-            (.antigravity, "tab_antigravity_7d_5h.png"),
-            (.codex, "tab_codex_7d_5h.png"),
-            (.claude, "tab_claude_reserved.png"),
-            (.grok, "tab_grok_reserved.png"),
-            (.deepseek, "tab_deepseek_reserved.png")
+        // 5. Snapshot AI Tabs (All Multi-AI Providers)
+        let aiTabs: [(ActiveAISource, String, Double, Double)] = [
+            (.antigravity, "tab_antigravity_7d_5h.png", 1.8, 2.3),
+            (.codex, "tab_codex_7d_5h.png", 2.6, 3.1),
+            (.claude, "tab_claude_reserved.png", 3.4, 3.9),
+            (.deepseek, "tab_deepseek_reserved.png", 4.2, 4.7)
         ]
-        for (idx, (source, filename)) in aiTabs.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 + Double(idx) * 0.4) { [weak self] in
+        for (source, filename, triggerDelay, captureDelay) in aiTabs {
+            DispatchQueue.main.asyncAfter(deadline: .now() + triggerDelay) { [weak self] in
                 guard let self = self else { return }
                 self.systemPanel.orderOut(nil)
                 self.monitor.isPanelVisible = false
                 self.quotaMgr.selectedAITab = source
                 self.quotaMgr.setStatusAI(source)
                 self.quotaMgr.isAIPanelVisible = true
+                let h = self.currentAIPanelHeight()
+                self.aiPanel.setFrame(NSRect(x: 100, y: 200, width: 360, height: h), display: true)
+                self.aiPanel.contentView?.frame = NSRect(x: 0, y: 0, width: 360, height: h)
                 self.aiPanel.makeKeyAndOrderFront(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + (captureDelay - triggerDelay)) { [weak self] in
                     guard let self = self, let view = self.aiPanel.contentView else { return }
                     if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                         view.cacheDisplay(in: view.bounds, to: rep)
@@ -689,7 +713,7 @@ class StatusBarController: NSObject {
         }
         
         if CommandLine.arguments.contains("--exit-after-snapshot") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.2) {
                 exit(0)
             }
         }

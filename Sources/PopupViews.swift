@@ -86,10 +86,14 @@ struct ExitPowerButton: View {
     var body: some View {
         Button(action: onExit) {
             Image(systemName: "power")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(isHovered ? Color(hex: 0xEF4444) : Color.white.opacity(0.38))
-                .frame(width: 22, height: 22)
-                .contentShape(Rectangle())
+                .frame(width: 18, height: 18)
+                .background(
+                    Circle()
+                        .fill(isHovered ? Color(hex: 0xEF4444).opacity(0.12) : Color.white.opacity(0.05))
+                )
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .disableFocusRing()
@@ -132,10 +136,30 @@ class InstantPressNSView: NSView {
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
     @Namespace private var systemTabNamespace
+    @State private var copiedNotice: String? = nil
     
     var onOpenAI: () -> Void = {}
     var onClose: () -> Void = {}
     var onExit: () -> Void = {}
+    
+    private func copyToClipboard(_ text: String, typeName: String? = nil) {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty && clean != "--" && clean != "检测中..." else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(clean, forType: .string)
+        withAnimation(.easeInOut(duration: 0.15)) {
+            if let type = typeName {
+                copiedNotice = "\(type) 已复制"
+            } else {
+                copiedNotice = "已复制 \(clean)"
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                copiedNotice = nil
+            }
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -167,7 +191,7 @@ struct SystemPopupView: View {
             // ── Industrial Footer
             footerView
         }
-        .frame(width: 360, height: 554)
+        .frame(width: 360, height: 540)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
@@ -177,18 +201,7 @@ struct SystemPopupView: View {
         .preferredColorScheme(.dark)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.22),
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.03)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.8
-                )
+                .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.8)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -198,25 +211,12 @@ struct SystemPopupView: View {
         HStack(alignment: .center, spacing: 10) {
             PulseBrandBadge()
             
-            VStack(alignment: .leading, spacing: 0) {
-                // Row 1: Pulse logo (Refined compact SVG)
-                HStack(alignment: .center, spacing: 6) {
-                    if let logo = PulseAssets.logoImage {
-                        Image(nsImage: logo)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 44, height: 12)
-                    } else {
-                        Text("PULSE")
-                            .font(.sfSans(12, weight: .bold, design: .monospaced))
-                            .tracking(-0.3)
-                            .foregroundColor(ThemeColors.textPrimary)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Pulse")
+                    .font(.sfSans(18, weight: .bold))
+                    .foregroundColor(ThemeColors.textPrimary)
+                    .lineLimit(1)
                 
-                Spacer(minLength: 0)
-                
-                // Row 2: ONLINE + red dot + IP (Flush bottom-aligned with icon badge)
                 HStack(alignment: .center, spacing: 5) {
                     Text("ONLINE")
                         .font(.sfSans(9.5, weight: .bold, design: .monospaced))
@@ -224,26 +224,21 @@ struct SystemPopupView: View {
                         .foregroundColor(ThemeColors.textSecondary)
                     
                     Circle()
-                        .fill(ThemeColors.accentRed) // Nothing iconic red dot
+                        .fill(ThemeColors.accentGreen)
                         .frame(width: 4.5, height: 4.5)
                     
                     Text("·")
+                        .font(.sfSans(9.5, weight: .regular))
                         .foregroundColor(ThemeColors.textMuted)
                     
                     Text("127.0.0.1:9000")
-                        .font(.sfSans(8.5, weight: .regular, design: .monospaced))
+                        .font(.sfSans(9.5, weight: .regular, design: .monospaced))
                         .foregroundColor(ThemeColors.textMuted)
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                 }
-                .offset(y: 4.5)
             }
-            .frame(height: 32)
             
-            Spacer(minLength: 8)
-            
-            // Action Button: Bare Power/Close SVG glyph (Self-contained hover state)
-            ExitPowerButton(onExit: onExit, tooltip: "退出系统监控（下次开机保持记忆）")
+            Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
@@ -255,47 +250,13 @@ struct SystemPopupView: View {
         let isHardware = (monitor.systemTab == .hardware)
         
         return ZStack(alignment: .leading) {
-            // Background track
+            // Background track (Clean Flat, No Stroke)
             Capsule()
                 .fill(Color.black.opacity(0.32))
-                .overlay(
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 0.6
-                        )
-                )
             
-            // Sliding Frosted Glass Capsule (Direct GPU Offset - 0ms Response, Never Hitches)
+            // Sliding Flat Matte Capsule (Clean Flat, No Stroke, Direct GPU Offset - 0ms Response)
             Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.18),
-                            Color.white.opacity(0.06)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.50),
-                                    Color.white.opacity(0.12)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 0.75
-                        )
-                )
+                .fill(ThemeColors.selectionFill)
                 .frame(width: 163, height: 26)
                 .offset(x: isHardware ? 166 : 3)
                 .animation(.spring(response: 0.16, dampingFraction: 0.85), value: monitor.systemTab)
@@ -435,19 +396,15 @@ struct SystemPopupView: View {
             .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
-            // Wi-Fi Card (Real Dynamically Detected SSID & Dot-Matrix Signal Meter)
-            HStack(spacing: 10) {
-                Image(systemName: "wifi")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(ThemeColors.textSecondary)
-                
-                VStack(alignment: .leading, spacing: 1) {
+            // Wi-Fi Card (Matching User's Layout: Text on Left, Wi-Fi Icon & Status on Right)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
                     let wifiTitle: String = {
                         let name = monitor.networkInfo.ssid.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if name.isEmpty || name == "以太网 / Wi-Fi" {
-                            return "以太网 / Wi-Fi"
+                        if name.isEmpty || name == "以太网 / Wi-Fi" || name == "未连接" {
+                            return "Wi-Fi"
                         } else {
-                            return "以太网 / Wi-Fi（\(name)）"
+                            return "Wi-Fi (\(name))"
                         }
                     }()
                     
@@ -463,10 +420,10 @@ struct SystemPopupView: View {
                 
                 Spacer()
                 
-                HStack(spacing: 6) {
-                    // Dot-Matrix Stepped Signal Meter
-                    DotMatrixSignalMeterView(bars: monitor.networkInfo.signalBars)
-                        .padding(.trailing, 2)
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
                     
                     HStack(spacing: 3) {
                         Circle().fill(ThemeColors.accentGreen).frame(width: 3.5, height: 3.5)
@@ -481,10 +438,10 @@ struct SystemPopupView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 7)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
-            // IP Details Card (Mockup-matched: PROXY IP label, Egress IP + Location, Direct IP + Local IP)
+            // IP Details Card (Clean Flat, No Refresh Icon, Tap to Copy)
             VStack(alignment: .leading, spacing: 4) {
                 if monitor.networkInfo.isProxyActive {
                     // Row 1: Label
@@ -493,22 +450,24 @@ struct SystemPopupView: View {
                             .font(.sfSans(8.5, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.accentPurple)
                         Spacer()
-                        if monitor.isNetworkRefreshing {
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .frame(width: 10, height: 10)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 8))
-                                .foregroundColor(ThemeColors.textMuted.opacity(0.45))
+                        if let notice = copiedNotice {
+                            Text(notice)
+                                .font(.sfSans(8.5, weight: .semibold))
+                                .foregroundColor(ThemeColors.accentGreen)
+                                .transition(.opacity)
                         }
                     }
                     
                     // Row 2: Egress IP (Left) + Flag & Location (Right)
                     HStack(alignment: .firstTextBaseline) {
-                        Text(monitor.networkInfo.publicIPv4)
+                        Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
                             .font(.sfSans(15, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                copyToClipboard(monitor.networkInfo.publicIPv4, typeName: "出口 IP")
+                            }
+                            .help("点击单独复制出口 IP: \(monitor.networkInfo.publicIPv4)")
                         
                         Spacer()
                         
@@ -540,6 +499,11 @@ struct SystemPopupView: View {
                                     .foregroundColor(ThemeColors.textMuted)
                             }
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            copyToClipboard(monitor.networkInfo.directIPv4, typeName: "直连 IP")
+                        }
+                        .help("点击单独复制直连 IP: \(monitor.networkInfo.directIPv4)")
                         
                         Spacer()
                         
@@ -551,6 +515,11 @@ struct SystemPopupView: View {
                                 .font(.sfSans(9, weight: .regular, design: .monospaced))
                                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            copyToClipboard(monitor.networkInfo.localIPv4, typeName: "内网 IP")
+                        }
+                        .help("点击单独复制内网 IP: \(monitor.networkInfo.localIPv4)")
                     }
                     .padding(.top, 1)
                 } else {
@@ -560,14 +529,11 @@ struct SystemPopupView: View {
                             .font(.sfSans(8.5, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textMuted)
                         Spacer()
-                        if monitor.isNetworkRefreshing {
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .frame(width: 10, height: 10)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 8))
-                                .foregroundColor(ThemeColors.textMuted.opacity(0.45))
+                        if let notice = copiedNotice {
+                            Text(notice)
+                                .font(.sfSans(8.5, weight: .semibold))
+                                .foregroundColor(ThemeColors.accentGreen)
+                                .transition(.opacity)
                         }
                     }
                     
@@ -575,6 +541,11 @@ struct SystemPopupView: View {
                         Text(monitor.networkInfo.publicIPv4.isEmpty ? "--" : monitor.networkInfo.publicIPv4)
                             .font(.sfSans(15, weight: .bold, design: .monospaced))
                             .foregroundColor(ThemeColors.textPrimary)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                copyToClipboard(monitor.networkInfo.publicIPv4, typeName: "公网 IP")
+                            }
+                            .help("点击单独复制公网 IP: \(monitor.networkInfo.publicIPv4)")
                         
                         Spacer()
                         
@@ -597,6 +568,11 @@ struct SystemPopupView: View {
                                 .font(.sfSans(9, weight: .regular, design: .monospaced))
                                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            copyToClipboard(monitor.networkInfo.localIPv4, typeName: "内网 IP")
+                        }
+                        .help("点击单独复制内网 IP: \(monitor.networkInfo.localIPv4)")
                     }
                     .padding(.top, 1)
                 }
@@ -604,10 +580,6 @@ struct SystemPopupView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 7.5)
             .industrialCard(cornerRadius: 10)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                monitor.fetchNetworkDetails(force: true)
-            }
             
             // Active Processes Card (Consistent Spacing & Height with Hardware)
             VStack(spacing: 4) {
@@ -618,7 +590,7 @@ struct SystemPopupView: View {
                     Spacer()
                     Text("TX")
                         .font(.sfSans(9, weight: .bold, design: .monospaced))
-                        .foregroundColor(ThemeColors.accentPurple)
+                        .foregroundColor(ThemeColors.accentViolet)
                         .frame(width: 45, alignment: .trailing)
                     Text("RX")
                         .font(.sfSans(9, weight: .bold, design: .monospaced))
@@ -649,7 +621,7 @@ struct SystemPopupView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6.5)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
         }
     }
@@ -705,11 +677,11 @@ struct SystemPopupView: View {
                 // Restrained Blue Accent Bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.trackBackground).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(hex: 0x00A3FF), Color(hex: 0x38BDF8)],
+                                    colors: [Color(hex: 0x1FE3D2).opacity(0.85), Color(hex: 0x1FE3D2)],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -733,14 +705,14 @@ struct SystemPopupView: View {
                 HStack(spacing: 2.5) {
                     ForEach(0..<min(16, max(4, monitor.snapshot.cpuCores)), id: \.self) { c in
                         RoundedRectangle(cornerRadius: 1.5)
-                            .fill(c < 2 ? Color(hex: 0x00A3FF) : (c < 5 ? Color(hex: 0x0284C7).opacity(0.6) : ThemeColors.dotInactive))
+                            .fill(c < 2 ? Color(hex: 0x1FE3D2) : (c < 5 ? Color(hex: 0x1FE3D2).opacity(0.6) : ThemeColors.trackBackground))
                             .frame(height: 4)
                     }
                 }
                 .padding(.top, 0.5)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6.5)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
             // ── 2. GPU Card
@@ -748,7 +720,7 @@ struct SystemPopupView: View {
                 HStack {
                     Image(systemName: "display")
                         .font(.system(size: 10.5))
-                        .foregroundColor(ThemeColors.accentPurple)
+                        .foregroundColor(ThemeColors.accentViolet)
                         .frame(width: 13)
                     Text("图形显卡 GPU")
                         .font(.oppoSans(11.5, weight: .semibold))
@@ -756,17 +728,16 @@ struct SystemPopupView: View {
                     Spacer()
                     Text("60 FPS")
                         .font(.sfSans(9.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(ThemeColors.purpleLight)
+                        .foregroundColor(ThemeColors.accentViolet)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(ThemeColors.accentPurple.opacity(0.15))
-                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(ThemeColors.accentPurple.opacity(0.3), lineWidth: 0.8))
                         .cornerRadius(3)
                 }
                 
                 HStack(spacing: 5) {
                     gpuMiniBadge(title: "GPU 负载", value: String(format: "%.0f%%", monitor.snapshot.gpuUsage), valueColor: ThemeColors.accentBlue)
-                    gpuMiniBadge(title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.purpleLight)
+                    gpuMiniBadge(title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.accentViolet)
                     gpuMiniBadge(title: "核心温度", value: monitor.snapshot.gpuTemp, valueColor: ThemeColors.textPrimary)
                     gpuMiniBadge(title: "架构", value: monitor.snapshot.isAppleSilicon ? "Unified" : "5500 XT", valueColor: ThemeColors.textSecondary)
                 }
@@ -776,7 +747,7 @@ struct SystemPopupView: View {
                     .foregroundColor(ThemeColors.textMuted)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
             // ── 3. Memory Card (40 GB DDR4 - Real Breakdown)
@@ -795,18 +766,12 @@ struct SystemPopupView: View {
                         .foregroundColor(ThemeColors.textPrimary)
                 }
                 
-                // Memory Bar (Electric Blue to Neon Purple Subtle Gradient)
+                // Memory Bar (Figma solid cyan)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.trackBackground).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: 0x00A3FF), ThemeColors.accentPurple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .fill(ThemeColors.accentCyan)
                             .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.memUsage / 100.0))), height: 3.5)
                     }
                 }
@@ -837,12 +802,12 @@ struct SystemPopupView: View {
                             .foregroundColor(ThemeColors.accentBlue)
                     }
                     HStack(spacing: 2) {
-                        Circle().fill(ThemeColors.accentPurple).frame(width: 3, height: 3)
+                        Circle().fill(ThemeColors.accentViolet).frame(width: 3, height: 3)
                         Text("联动: 4.0 GB")
                             .font(.sfSans(8, weight: .medium))
                             .monospacedDigit()
                             .lineLimit(1)
-                            .foregroundColor(ThemeColors.purpleLight)
+                            .foregroundColor(ThemeColors.accentViolet)
                     }
                     HStack(spacing: 2) {
                         Circle().fill(ThemeColors.accentOrange).frame(width: 3, height: 3)
@@ -863,7 +828,7 @@ struct SystemPopupView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6.5)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
             // ── 4. Storage SSD Card
@@ -884,15 +849,9 @@ struct SystemPopupView: View {
                 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.matteCardSecondary).frame(height: 3.5)
+                        RoundedRectangle(cornerRadius: 2).fill(ThemeColors.trackBackground).frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: 0x00A3FF).opacity(0.85), Color(hex: 0x38BDF8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .fill(ThemeColors.accentViolet)
                             .frame(width: max(4, geo.size.width * CGFloat(min(1.0, monitor.snapshot.diskUsage / 100.0))), height: 3.5)
                     }
                 }
@@ -910,7 +869,7 @@ struct SystemPopupView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
             
             // ── 5. Power & Uptime Card (Adapts to Desktop vs Laptop)
@@ -976,7 +935,7 @@ struct SystemPopupView: View {
                 .padding(.top, 1)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .industrialCard(cornerRadius: 10)
         }
     }
@@ -999,7 +958,7 @@ struct SystemPopupView: View {
     // MARK: - Footer
     private var footerView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5.1")
+            Text("v1.5.2")
                 .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
                 .contentShape(Rectangle())
@@ -1034,6 +993,17 @@ struct AIPopupView: View {
     var onClose: () -> Void = {}
     var onExit: () -> Void = {}
     
+    private var dynamicAIPanelHeight: CGFloat {
+        switch quotaMgr.selectedAITab {
+        case .antigravity:
+            return 448
+        case .codex:
+            return 336
+        case .claude, .deepseek:
+            return 300
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             aiHeaderView
@@ -1050,6 +1020,7 @@ struct AIPopupView: View {
                         source: source,
                         profile: quotaMgr.profile(for: source)
                     )
+                    .id(source)
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 4)
@@ -1060,7 +1031,8 @@ struct AIPopupView: View {
             
             aiFooterView
         }
-        .frame(width: 360, height: 520)
+        .frame(width: 360)
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
@@ -1070,18 +1042,7 @@ struct AIPopupView: View {
         .preferredColorScheme(.dark)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.22),
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.03)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.8
-                )
+                .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.8)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -1128,10 +1089,7 @@ struct AIPopupView: View {
             }
             .frame(height: 32)
             
-            Spacer(minLength: 4)
-            
-            // ── Dedicated Exit AI Button (Self-Contained Hover State)
-            ExitPowerButton(onExit: onExit, tooltip: "退出 AI 状态栏（下次开机保持记忆）")
+            Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -1146,10 +1104,10 @@ struct AIPopupView: View {
                     let isSelected = (quotaMgr.selectedAITab == source)
                     
                     Button(action: {
-                        withAnimation(.spring(response: 0.20, dampingFraction: 0.86)) {
+                        withAnimation(.easeInOut(duration: 0.18)) {
                             quotaMgr.selectedAITab = source
-                            quotaMgr.setStatusAI(source) // 切换直接联动状态栏，无需二次操作！
                         }
+                        quotaMgr.setStatusAI(source) // 切换直接联动状态栏，无需二次操作！
                         if source == .codex {
                             quotaMgr.fetchCodexLiveQuota(force: true)
                         } else if source == .antigravity {
@@ -1189,31 +1147,11 @@ struct AIPopupView: View {
                         ZStack {
                             if isSelected {
                                 Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.white.opacity(0.18),
-                                                Color.white.opacity(0.06)
-                                            ],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
+                                    .fill(ThemeColors.selectionFill)
                                     .overlay(
                                         Capsule()
-                                            .strokeBorder(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color.white.opacity(0.50),
-                                                        Color.white.opacity(0.12)
-                                                    ],
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                ),
-                                                lineWidth: 0.75
-                                            )
+                                            .strokeBorder(ThemeColors.selectionBorder, lineWidth: 0.5)
                                     )
-                                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
                                     .matchedGeometryEffect(id: "aiActiveCapsule", in: aiTabNamespace)
                             }
                         }
@@ -1225,24 +1163,13 @@ struct AIPopupView: View {
                 Capsule()
                     .fill(Color.black.opacity(0.28))
             )
-            .overlay(
-                Capsule()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 0.6
-                    )
-            )
             .padding(.horizontal, 14)
         }
     }
     
     private var aiFooterView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5.1")
+            Text("v1.5.2")
                 .font(.sfSans(9.5, weight: .medium, design: .monospaced))
                 .foregroundColor(ThemeColors.textMuted.opacity(0.65))
                 .contentShape(Rectangle())
@@ -1504,7 +1431,7 @@ struct AIProfileQuotaCardView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: 0x2563EB))
+                                .background(ThemeColors.accountAction)
                                 .cornerRadius(3)
                         }
                         .buttonStyle(.springPress)
@@ -1520,7 +1447,7 @@ struct AIProfileQuotaCardView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: 0x059669))
+                                .background(ThemeColors.accountAction)
                                 .cornerRadius(3)
                         }
                         .buttonStyle(.springPress)
@@ -1528,32 +1455,11 @@ struct AIProfileQuotaCardView: View {
                     }
                 }
             }
-            
-            // Out of Quota Warning Alert (Only for exhausted accounts)
-            if !profile.isActive && source.isConfigured {
-                HStack(spacing: 5) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 9))
-                        .foregroundColor(Color(hex: 0xEF4444))
-                    Text("当前账户额度已完全耗尽 (0 额度)，需等待重置周期")
-                        .font(.oppoSans(8.5, weight: .medium))
-                        .foregroundColor(Color(hex: 0xFCA5A5))
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(hex: 0x7F1D1D).opacity(0.35))
-                .cornerRadius(5)
-            }
         }
         .padding(11)
         .background(
             RoundedRectangle(cornerRadius: 11)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 11)
-                        .strokeBorder(ThemeColors.hairlineBorder, lineWidth: 0.8)
-                )
+                .fill(ThemeColors.matteCard)
         )
     }
     
@@ -1590,19 +1496,10 @@ struct AIProfileQuotaCardView: View {
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
                                             Capsule()
-                                                .fill(Color.white.opacity(0.08))
+                                                .fill(ThemeColors.trackBackground)
                                                 .frame(height: 6)
                                             Capsule()
-                                                .fill(
-                                                    LinearGradient(
-                                                        colors: [
-                                                            barColor(for: win).opacity(0.85),
-                                                            barColor(for: win)
-                                                        ],
-                                                        startPoint: .leading,
-                                                        endPoint: .trailing
-                                                    )
-                                                )
+                                                .fill(barColor(for: win))
                                                 .frame(width: max(4, geo.size.width * CGFloat(min(1.0, win.percent / 100.0))), height: 6)
                                         }
                                     }
@@ -1611,7 +1508,7 @@ struct AIProfileQuotaCardView: View {
                                     Text(displayPercent(win.percent))
                                         .font(.sfSans(10, weight: .bold, design: .monospaced))
                                         .monospacedDigit()
-                                        .foregroundColor(barColor(for: win))
+                                        .foregroundColor(quotaLabelColor(for: win))
                                         .frame(width: 36, alignment: .trailing)
                                 }
                                 
@@ -1639,11 +1536,7 @@ struct AIProfileQuotaCardView: View {
         .padding(11)
         .background(
             RoundedRectangle(cornerRadius: 11)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 11)
-                        .strokeBorder(ThemeColors.hairlineBorder, lineWidth: 0.8)
-                )
+                .fill(ThemeColors.matteCard)
         )
     }
     
@@ -1735,7 +1628,7 @@ struct AIProfileQuotaCardView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color(hex: 0xD97706))
+                        .background(Color(hex: 0xE46C10))
                         .cornerRadius(5)
                     }
                     .buttonStyle(.springPress)
@@ -1766,7 +1659,6 @@ struct AIProfileQuotaCardView: View {
                     let urlStr: String
                     switch source {
                     case .claude: urlStr = "https://console.anthropic.com"
-                    case .grok: urlStr = "https://x.ai/api"
                     case .deepseek: urlStr = "https://platform.deepseek.com"
                     case .codex: urlStr = "https://platform.openai.com"
                     case .antigravity: urlStr = "https://antigravity.google"
@@ -1790,11 +1682,7 @@ struct AIProfileQuotaCardView: View {
         .padding(11)
         .background(
             RoundedRectangle(cornerRadius: 11)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 11)
-                        .strokeBorder(ThemeColors.hairlineBorder, lineWidth: 0.8)
-                )
+                .fill(ThemeColors.matteCard)
         )
     }
     
@@ -1829,7 +1717,6 @@ struct AIProfileQuotaCardView: View {
         case .antigravity: return "~/.gemini/antigravity/usage.json"
         case .codex: return "~/.codex/auth.json"
         case .claude: return "~/.claude.json"
-        case .grok: return "~/.grok/credentials.json"
         case .deepseek: return "~/.deepseek/config.json"
         }
     }
@@ -1839,7 +1726,6 @@ struct AIProfileQuotaCardView: View {
         case .antigravity: return NSHomeDirectory() + "/.gemini/antigravity"
         case .codex: return NSHomeDirectory() + "/.codex"
         case .claude: return NSHomeDirectory() + "/.claude"
-        case .grok: return NSHomeDirectory() + "/.grok"
         case .deepseek: return NSHomeDirectory() + "/.deepseek"
         }
     }
@@ -1854,18 +1740,22 @@ struct AIProfileQuotaCardView: View {
         }
     }
     
+    // Figma examples: 69–100% green, 49% orange, 20% red.
     private func barColor(for win: RollingWindowQuota) -> Color {
-        if win.isExhausted {
-            return Color(hex: 0xEF4444)
-        } else if win.percent >= 80.0 {
-            return Color(hex: 0x22C55E)
-        } else if win.percent >= 50.0 {
-            return Color(hex: 0x84CC16)
-        } else if win.percent > 0.0 {
-            return Color(hex: 0xF59E0B)
+        if win.isExhausted || win.percent <= 20.0 {
+            return ThemeColors.quotaCritical
+        } else if win.percent < 50.0 {
+            return ThemeColors.quotaWarning
         } else {
-            return Color(hex: 0xEF4444)
+            return ThemeColors.quotaHealthy
         }
+    }
+
+    private func quotaLabelColor(for win: RollingWindowQuota) -> Color {
+        if !win.isExhausted && win.percent > 20.0 && win.percent < 50.0 {
+            return ThemeColors.quotaWarningText
+        }
+        return barColor(for: win)
     }
 }
 

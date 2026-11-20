@@ -119,8 +119,8 @@ struct VisualEffectBlur: NSViewRepresentable {
 
 // MARK: - Nothing OS / Teenage Engineering Minimalist Industrial Tokens
 struct ThemeColors {
-    // ── Airy Frosted Glass & Translucent Obsidian Layering (透气毛玻璃微透质感)
-    static let glassTint = Color(hex: 0x0C0E14, alpha: 0.48)      // Airy translucent obsidian tint (allows native blur to breathe)
+    // ── Airy Frosted Glass & Translucent Background Layering (Figma: rgba(45, 46, 48, 0.85) / #2D2E30 @ 85%)
+    static let glassTint = Color(hex: 0x2D2E30, alpha: 0.85)      // Figma panel background
     static let matteBg = glassTint
     static let matteCard = Color(hex: 0x161820, alpha: 0.52)     // Refined translucent smoke tile (neither milky nor pitch black)
     static let matteCardSecondary = Color(hex: 0x1D202A, alpha: 0.42) // Interactive translucent tile
@@ -131,19 +131,31 @@ struct ThemeColors {
     static let hairlineBorderHighlight = Color.white.opacity(0.22)
     static let divider = Color.white.opacity(0.08)
     
-    // ── Dot Matrix Display Colors (Nothing Phone / Teenage Engineering Style)
+    // ── Dot Matrix Display & Progress Bar Track Colors (Nothing Phone / Teenage Engineering Style)
     static let dotInactive = Color.white.opacity(0.07)              // Unlit dot-matrix pixel
+    static let trackBackground = Color.white.opacity(0.07)          // Figma white/opacity-70 progress bar track
     static let dotActive = Color.white                              // Pure bright illuminated pixel
     static let dotActiveSubtle = Color(hex: 0xD4D4D8)               // Secondary lit pixel
     static let dotMuted = Color(hex: 0x52525B)                      // Low-signal pixel
     
     // ── Precise Jewel Accents (点缀色 · 仅用于点/标/尖端，不铺满大面积)
     static let accentRed = Color(hex: 0xFF453A)                     // Nothing iconic vermillion red dot
-    static let accentCyan = Color(hex: 0x00E5FF)                    // Industrial electric cyan
-    static let accentPurple = Color(hex: 0xA44BFD)                  // Pulse vibrant micro violet (#A44BFD)
-    static let accentBlue = Color(hex: 0x38BDF8)                    // Codex electric sky blue
-    static let accentOrange = Color(hex: 0xFF9F0A)                  // Amber telemetry tip
+    static let accentCyan = Color(hex: 0x1FE3D2)                    // Updated Cyan (#1FE3D2)
+    static let accentPurple = Color(hex: 0x9054FF)                  // Updated Pulse Purple (#9054FF)
+    static let accentBlue = Color(hex: 0x1FE3D2)                    // Updated Blue (#1FE3D2)
+    static let accentOrange = Color(hex: 0xE46C10)                  // Updated Orange (#E46C10)
     static let accentGreen = Color(hex: 0x30D158)                   // Status normal green dot
+
+    // Figma 93:473 color refinement, 2026-11-20.
+    static let accentViolet = Color(hex: 0x875AF6)
+    static let selectionFill = Color(hex: 0x8C87D0, alpha: 31.0 / 255.0)
+    static let selectionBorder = Color.black.opacity(41.0 / 255.0)
+    static let accountAction = Color(hex: 0x2563EB)
+    static let quotaHealthy = accentGreen                         // Figma #30D158; 50% and above
+    static let quotaWarning = accentOrange                        // Figma #E46C10; above 20% and below 50%
+    static let quotaWarningText = accentOrange                    // Figma #E46C10; percentage label
+    static let quotaCritical = accentRed                          // Figma #FF453A; 20% and below
+
     
     // ── High-Contrast Industrial Typography
     static let textPrimary = Color(hex: 0xF4F4F5)                   // Solid high-contrast white
@@ -167,7 +179,7 @@ struct ThemeColors {
     static let cyan = accentCyan
 }
 
-// MARK: - Nothing / Industrial Card View Modifier
+// MARK: - Nothing / Industrial Card View Modifier (Clean Flat Matte, No Stroke)
 struct IndustrialCardModifier: ViewModifier {
     var cornerRadius: CGFloat = 12
     var hasHighlight: Bool = false
@@ -177,25 +189,6 @@ struct IndustrialCardModifier: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(ThemeColors.matteCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: hasHighlight ? [
-                                        Color.white.opacity(0.24),
-                                        Color.white.opacity(0.10),
-                                        Color.white.opacity(0.04)
-                                    ] : [
-                                        Color.white.opacity(0.14),
-                                        Color.white.opacity(0.06),
-                                        Color.white.opacity(0.02)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 0.8
-                            )
-                    )
             )
     }
 }

@@ -43,7 +43,7 @@ struct WaveformView: View {
                             }
                         } else {
                             if row < 2 {
-                                color = Color(hex: 0x38BDF8) // Electric Cyan
+                                color = Color(hex: 0x1FE3D2) // Electric Blue / Cyan
                             } else if row < 4 {
                                 color = Color(hex: 0x60A5FA) // Sky Blue
                             } else if row < 5 {
@@ -59,16 +59,7 @@ struct WaveformView: View {
                 }
             }
         }
-        .frame(height: 38)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color.black.opacity(0.20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7)
-                        .strokeBorder(ThemeColors.hairlineBorder.opacity(0.6), lineWidth: 0.6)
-                )
-        )
+        .frame(height: 42)
+        .padding(.horizontal, 4)
     }
 }
