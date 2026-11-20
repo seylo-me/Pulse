@@ -135,6 +135,7 @@ class InstantPressNSView: NSView {
 // MARK: - 1. System Popup View (Dedicated Traffic & Hardware - Zero AI Clutter!)
 struct SystemPopupView: View {
     @ObservedObject var monitor: SystemMonitor
+    @ObservedObject private var updateMgr = UpdateManager.shared
     @Namespace private var systemTabNamespace
     @State private var copiedNotice: String? = nil
     
@@ -958,25 +959,37 @@ struct SystemPopupView: View {
     // MARK: - Footer
     private var footerView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5.2")
-                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
-                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-            
             Spacer()
             
-            FooterLinkButton(
-                title: monitor.isAIStatusItemActive ? "AI 额度 ↗" : "+ 开启 AI 状态栏",
-                icon: "sparkles",
-                activeColor: Color(hex: 0xC084FC),
-                action: onOpenAI
-            )
-            .help(monitor.isAIStatusItemActive ? "切换至 AI 额度中心" : "恢复并打开 AI 额度状态栏")
+            if updateMgr.hasUpdate {
+                Button(action: {
+                    updateMgr.promptAndUpdate()
+                }) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: 0x30AC58))
+                            .frame(width: 5, height: 5)
+                        Text("新版本 v\(updateMgr.latestVersion) 🚀")
+                            .font(.sfSans(9.5, weight: .semibold, design: .monospaced))
+                            .foregroundColor(Color(hex: 0x30AC58))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(hex: 0x30AC58).opacity(0.12))
+                    .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .help("发现新版本，点击立即自动更新")
+            } else {
+                Text("v\(UpdateManager.currentVersion)")
+                    .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                    .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        updateMgr.checkForUpdates(manual: true)
+                    }
+                    .help("点击检查更新")
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -987,6 +1000,7 @@ struct SystemPopupView: View {
 // MARK: - 2. Dedicated Independent AI Popup View
 struct AIPopupView: View {
     @ObservedObject var quotaMgr: QuotaManager
+    @ObservedObject private var updateMgr = UpdateManager.shared
     @Namespace private var aiTabNamespace
     
     var onOpenSystem: () -> Void = {}
@@ -1169,25 +1183,37 @@ struct AIPopupView: View {
     
     private var aiFooterView: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("v1.5.2")
-                .font(.sfSans(9.5, weight: .medium, design: .monospaced))
-                .foregroundColor(ThemeColors.textMuted.opacity(0.65))
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if let url = URL(string: "https://github.com/suleeeee/Pulse/releases") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-            
             Spacer()
             
-            FooterLinkButton(
-                title: quotaMgr.isSystemStatusItemActive ? "系统监控 ↗" : "+ 开启系统监控",
-                icon: "waveform.path.ecg",
-                activeColor: ThemeColors.accentCyan,
-                action: onOpenSystem
-            )
-            .help(quotaMgr.isSystemStatusItemActive ? "切换至系统流量与硬件监控" : "恢复并打开系统网速状态栏")
+            if updateMgr.hasUpdate {
+                Button(action: {
+                    updateMgr.promptAndUpdate()
+                }) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: 0x30AC58))
+                            .frame(width: 5, height: 5)
+                        Text("新版本 v\(updateMgr.latestVersion) 🚀")
+                            .font(.sfSans(9.5, weight: .semibold, design: .monospaced))
+                            .foregroundColor(Color(hex: 0x30AC58))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(hex: 0x30AC58).opacity(0.12))
+                    .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .help("发现新版本，点击立即自动更新")
+            } else {
+                Text("v\(UpdateManager.currentVersion)")
+                    .font(.sfSans(9.5, weight: .medium, design: .monospaced))
+                    .foregroundColor(ThemeColors.textMuted.opacity(0.65))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        updateMgr.checkForUpdates(manual: true)
+                    }
+                    .help("点击检查更新")
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -1419,40 +1445,6 @@ struct AIProfileQuotaCardView: View {
                             .stroke(pillDotColor.opacity(0.4), lineWidth: 0.6)
                     )
                     .clipShape(Capsule())
-                    
-                    if source == .antigravity {
-                        Button(action: {
-                            if let url = URL(string: "https://one.google.com/explore-plan") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }) {
-                            Text("Upgrade ↗")
-                                .font(.sfSans(8, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(ThemeColors.accountAction)
-                                .cornerRadius(3)
-                        }
-                        .buttonStyle(.springPress)
-                        .disableFocusRing()
-                    } else if source == .codex {
-                        Button(action: {
-                            if let url = URL(string: "https://chatgpt.com/#settings/Subscription") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }) {
-                            Text("Manage ↗")
-                                .font(.sfSans(8, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(ThemeColors.accountAction)
-                                .cornerRadius(3)
-                        }
-                        .buttonStyle(.springPress)
-                        .disableFocusRing()
-                    }
                 }
             }
         }
@@ -1508,7 +1500,7 @@ struct AIProfileQuotaCardView: View {
                                     Text(displayPercent(win.percent))
                                         .font(.sfSans(10, weight: .bold, design: .monospaced))
                                         .monospacedDigit()
-                                        .foregroundColor(quotaLabelColor(for: win))
+                                        .foregroundColor(.white)
                                         .frame(width: 36, alignment: .trailing)
                                 }
                                 
@@ -1752,10 +1744,7 @@ struct AIProfileQuotaCardView: View {
     }
 
     private func quotaLabelColor(for win: RollingWindowQuota) -> Color {
-        if !win.isExhausted && win.percent > 20.0 && win.percent < 50.0 {
-            return ThemeColors.quotaWarningText
-        }
-        return barColor(for: win)
+        return .white
     }
 }
 

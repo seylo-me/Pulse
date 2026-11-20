@@ -423,7 +423,7 @@ class StatusBarController: NSObject {
         let headerItem = NSMenuItem()
         headerItem.isEnabled = false
         headerItem.attributedTitle = NSAttributedString(
-            string: "Pulse  v1.5.2",
+            string: "Pulse  v\(UpdateManager.currentVersion)",
             attributes: [
                 .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold),
                 .foregroundColor: NSColor.tertiaryLabelColor
@@ -471,7 +471,26 @@ class StatusBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        // 4. Quit App
+        // 4. Update Check
+        if UpdateManager.shared.hasUpdate {
+            let updateItem = createMenuItem(
+                title: "🚀 立即更新到 v\(UpdateManager.shared.latestVersion)...",
+                icon: "arrow.triangle.2.circlepath.circle.fill",
+                action: #selector(performUpdate)
+            )
+            menu.addItem(updateItem)
+        } else {
+            let updateItem = createMenuItem(
+                title: "检查更新...",
+                icon: "arrow.triangle.2.circlepath",
+                action: #selector(checkUpdatesManual)
+            )
+            menu.addItem(updateItem)
+        }
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // 5. Quit App
         let quit = createMenuItem(
             title: "退出 Pulse",
             icon: "power",
@@ -535,6 +554,14 @@ class StatusBarController: NSObject {
         } else {
             restoreAI()
         }
+    }
+    
+    @objc func checkUpdatesManual() {
+        UpdateManager.shared.checkForUpdates(manual: true)
+    }
+    
+    @objc func performUpdate() {
+        UpdateManager.shared.promptAndUpdate()
     }
     
     @objc func quitApp() {

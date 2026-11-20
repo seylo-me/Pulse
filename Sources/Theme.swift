@@ -151,10 +151,10 @@ struct ThemeColors {
     static let selectionFill = Color(hex: 0x8C87D0, alpha: 31.0 / 255.0)
     static let selectionBorder = Color.black.opacity(41.0 / 255.0)
     static let accountAction = Color(hex: 0x2563EB)
-    static let quotaHealthy = accentGreen                         // Figma #30D158; 50% and above
-    static let quotaWarning = accentOrange                        // Figma #E46C10; above 20% and below 50%
-    static let quotaWarningText = accentOrange                    // Figma #E46C10; percentage label
-    static let quotaCritical = accentRed                          // Figma #FF453A; 20% and below
+    static let quotaHealthy = Color(hex: 0x30AC58)                 // Figma #30AC58; 50% and above
+    static let quotaWarning = Color(hex: 0xD3722F)                 // Figma #D3722F; above 20% and below 50%
+    static let quotaWarningText = Color.white                      // Percentage label pure white
+    static let quotaCritical = Color(hex: 0xD3422F)                // Figma #D3422F; 20% and below
 
     
     // ── High-Contrast Industrial Typography
