@@ -192,7 +192,7 @@ struct SystemPopupView: View {
             // ── Industrial Footer
             footerView
         }
-        .frame(width: 360, height: 540)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)
@@ -250,43 +250,47 @@ struct SystemPopupView: View {
     private var systemModeSwitcherView: some View {
         let isHardware = (monitor.systemTab == .hardware)
         
-        return ZStack(alignment: .leading) {
-            // Background track (Clean Flat, No Stroke)
-            Capsule()
-                .fill(Color.black.opacity(0.32))
-            
-            // Sliding Flat Matte Capsule (Clean Flat, No Stroke, Direct GPU Offset - 0ms Response)
-            Capsule()
-                .fill(ThemeColors.selectionFill)
-                .frame(width: 163, height: 26)
-                .offset(x: isHardware ? 166 : 3)
-                .animation(.spring(response: 0.16, dampingFraction: 0.85), value: monitor.systemTab)
-            
-            // Two Interactive Tap Targets (Instant 0ms AppKit MouseDown Dispatch, Zero Delay)
-            HStack(spacing: 0) {
-                ForEach(SystemTab.allCases, id: \.rawValue) { tab in
-                    let isSelected = (monitor.systemTab == tab)
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 10.5, weight: isSelected ? .bold : .medium))
-                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
-                        Text(tab.title)
-                            .font(.sfSans(11, weight: isSelected ? .bold : .regular))
-                            .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .overlay(
-                        InstantPressArea {
-                            if monitor.systemTab != tab {
-                                monitor.systemTab = tab
-                            }
+        return GeometryReader { geo in
+            let totalW = geo.size.width
+            let itemW = (totalW - 6) / 2
+            ZStack(alignment: .leading) {
+                // Background track (Clean Flat, No Stroke)
+                Capsule()
+                    .fill(Color.black.opacity(0.32))
+                
+                // Sliding Flat Matte Capsule (Clean Flat, No Stroke, Direct GPU Offset - 0ms Response)
+                Capsule()
+                    .fill(ThemeColors.selectionFill)
+                    .frame(width: itemW, height: 26)
+                    .offset(x: isHardware ? (itemW + 3) : 3)
+                    .animation(.spring(response: 0.16, dampingFraction: 0.85), value: monitor.systemTab)
+                
+                // Two Interactive Tap Targets (Instant 0ms AppKit MouseDown Dispatch, Zero Delay)
+                HStack(spacing: 0) {
+                    ForEach(SystemTab.allCases, id: \.rawValue) { tab in
+                        let isSelected = (monitor.systemTab == tab)
+                        HStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 10.5, weight: isSelected ? .bold : .medium))
+                                .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
+                            Text(tab.title)
+                                .font(.sfSans(11, weight: isSelected ? .bold : .regular))
+                                .foregroundColor(isSelected ? Color.white : Color.white.opacity(0.48))
                         }
-                    )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                        .overlay(
+                            InstantPressArea {
+                                if monitor.systemTab != tab {
+                                    monitor.systemTab = tab
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
-        .frame(width: 332, height: 32)
+        .frame(height: 32)
     }
     
     // ════════════════════════════════════════════════════════════
@@ -1045,8 +1049,7 @@ struct AIPopupView: View {
             
             aiFooterView
         }
-        .frame(width: 360)
-        .frame(maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             ZStack {
                 VisualEffectBlur(material: .popover, blendingMode: .behindWindow)

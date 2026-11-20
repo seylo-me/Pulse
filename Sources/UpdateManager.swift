@@ -41,13 +41,13 @@ final class UpdateManager: ObservableObject {
     @Published var releaseTitle: String = ""
     @Published var releaseNotes: String = ""
     @Published var downloadUrl: String = ""
-    @Published var releaseHtmlUrl: String = "https://github.com/suleeeee/Pulse/releases"
+    @Published var releaseHtmlUrl: String = "https://github.com/seylo-me/Pulse/releases"
     @Published var isChecking: Bool = false
     @Published var isUpdating: Bool = false
     @Published var updateStatus: String = ""
     
     private var checkTimer: Timer?
-    private let repoUrl = "https://api.github.com/repos/suleeeee/Pulse/releases/latest"
+    private let repoUrl = "https://api.github.com/repos/seylo-me/Pulse/releases/latest"
     
     private init() {
         // Start background check 3 seconds after launch
@@ -122,7 +122,7 @@ final class UpdateManager: ObservableObject {
                     
                     self.releaseTitle = release.name ?? "Pulse v\(remoteVersion)"
                     self.releaseNotes = release.body ?? ""
-                    self.releaseHtmlUrl = release.htmlUrl ?? "https://github.com/suleeeee/Pulse/releases"
+                    self.releaseHtmlUrl = release.htmlUrl ?? "https://github.com/seylo-me/Pulse/releases"
                     
                     // Pick Universal zip asset first, then any zip
                     var pickedAssetUrl: String? = nil

@@ -51,7 +51,7 @@
 
 ## 📦 安装与下载 (Downloads)
 
-前往 [GitHub Releases](https://github.com/suleeeee/Pulse/releases) 页面获取最新安装包：
+前往 [GitHub Releases](https://github.com/seylo-me/Pulse/releases) 页面获取最新安装包：
 
 | 架构版本 | 适用机型 | 下载安装包 |
 | :--- | :--- | :--- |
@@ -92,7 +92,7 @@
 ### 构建步骤
 ```bash
 # 1. 克隆代码仓库
-git clone https://github.com/suleeeee/Pulse.git
+git clone https://github.com/seylo-me/Pulse.git
 cd Pulse
 
 # 2. 赋予构建脚本可执行权限并打包

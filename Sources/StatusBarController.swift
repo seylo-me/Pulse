@@ -38,6 +38,60 @@ class FlippedContainerView: NSView {
     override var isFlipped: Bool { true }
 }
 
+// MARK: - Responsive Screen Profile for Multi-Display Adaptation (方案 A 自适应屏幕)
+struct ScreenAdaptiveProfile {
+    let panelWidth: CGFloat
+    let systemPanelHeight: CGFloat
+    let aiAntigravityHeight: CGFloat
+    let aiCodexHeight: CGFloat
+    let aiCompactHeight: CGFloat
+    let isCompact: Bool
+    
+    static func current(for screen: NSScreen?) -> ScreenAdaptiveProfile {
+        let scr = screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let s = scr else {
+            return ScreenAdaptiveProfile.compact
+        }
+        
+        let visibleH = s.visibleFrame.height
+        var isBuiltin = false
+        if let screenNumber = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID {
+            isBuiltin = (CGDisplayIsBuiltin(screenNumber) != 0)
+        }
+        
+        // 笔记本屏幕判定逻辑：
+        // 1. 凡是 MacBook 内置屏 (CGDisplayIsBuiltin)
+        // 2. 或可视纵向高度 <= 1000 pt 的任何屏幕（如 13/14 寸 MacBook 默认 Retina 缩放为 900~982pt）
+        if isBuiltin || visibleH <= 1000 {
+            return ScreenAdaptiveProfile.compact
+        } else {
+            return ScreenAdaptiveProfile.standard
+        }
+    }
+    
+    // 💻 笔记本专属紧凑模式 (Compact Profile)
+    // 宽度 320 pt 与 macOS 原生控制中心保持一致；高度 468 pt 确保屏幕垂直占比在 50% 左右，绝不遮挡大半屏幕
+    static let compact = ScreenAdaptiveProfile(
+        panelWidth: 320,
+        systemPanelHeight: 468,
+        aiAntigravityHeight: 400,
+        aiCodexHeight: 310,
+        aiCompactHeight: 280,
+        isCompact: true
+    )
+    
+    // 🖥️ 外部大屏专属舒适模式 (Standard Profile)
+    // 适用于 24/27/32 寸 4K/5K 等高分辨率大显示器，宽度 356 pt，高度 520 pt
+    static let standard = ScreenAdaptiveProfile(
+        panelWidth: 356,
+        systemPanelHeight: 520,
+        aiAntigravityHeight: 448,
+        aiCodexHeight: 336,
+        aiCompactHeight: 300,
+        isCompact: false
+    )
+}
+
 // MARK: - Status Bar Controller (Two Independent Items: System & Single AI Capsule)
 class StatusBarController: NSObject {
     
@@ -202,8 +256,10 @@ class StatusBarController: NSObject {
     }
     
     private func setupPanels() {
+        let initialProfile = ScreenAdaptiveProfile.current(for: NSScreen.main)
+        
         // 1. System Panel (Traffic & Hardware only - 100% Fit in One Screen)
-        let sysRect = NSRect(x: 0, y: 0, width: 360, height: 540)
+        let sysRect = NSRect(x: 0, y: 0, width: initialProfile.panelWidth, height: initialProfile.systemPanelHeight)
         systemPanel = PulsePanel(contentRect: sysRect)
         let sysRoot = SystemPopupView(
             monitor: monitor,
@@ -217,10 +273,12 @@ class StatusBarController: NSObject {
         sysHosting.wantsLayer = true
         sysHosting.layer?.cornerRadius = 16
         sysHosting.layer?.masksToBounds = true
+        sysHosting.autoresizingMask = [.width, .height]
         systemPanel.contentView = sysHosting
         
         // 2. AI Panel (Independent Quota Center with Selector)
-        let aiRect = NSRect(x: 0, y: 0, width: 360, height: 448)
+        let aiHeight = currentAIPanelHeight(profile: initialProfile)
+        let aiRect = NSRect(x: 0, y: 0, width: initialProfile.panelWidth, height: aiHeight)
         aiPanel = PulsePanel(contentRect: aiRect)
         let aiRoot = AIPopupView(
             quotaMgr: quotaMgr,
@@ -328,7 +386,9 @@ class StatusBarController: NSObject {
             monitor.refreshSnapshot()
             
             if let button = item.button {
-                positionPanel(systemPanel, near: button, panelWidth: 360, panelHeight: 580)
+                let screen = button.window?.screen ?? NSScreen.main ?? NSScreen.screens.first
+                let profile = ScreenAdaptiveProfile.current(for: screen)
+                positionPanel(systemPanel, near: button, panelWidth: profile.panelWidth, panelHeight: profile.systemPanelHeight)
             }
             systemPanel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -336,28 +396,32 @@ class StatusBarController: NSObject {
         }
     }
     
-    private func currentAIPanelHeight() -> CGFloat {
+    private func currentAIPanelHeight(profile: ScreenAdaptiveProfile? = nil) -> CGFloat {
+        let prof = profile ?? ScreenAdaptiveProfile.current(for: aiPanel?.screen ?? NSScreen.main)
         switch quotaMgr.selectedAITab {
         case .antigravity:
-            return 448
+            return prof.aiAntigravityHeight
         case .codex:
-            return 336
+            return prof.aiCodexHeight
         case .claude, .deepseek:
-            return 300
+            return prof.aiCompactHeight
         }
     }
 
     func updateAIPanelHeight(animated: Bool = true) {
         guard aiPanel.isVisible else { return }
-        let height = currentAIPanelHeight()
+        let screen = aiPanel.screen ?? NSScreen.main ?? NSScreen.screens.first
+        let profile = ScreenAdaptiveProfile.current(for: screen)
+        let height = currentAIPanelHeight(profile: profile)
+        let width = profile.panelWidth
         
         // 彻底锁定 X 坐标与顶边 Y 坐标，绝不产生水平漂移与顶部震颤
         let x = aiPanel.frame.origin.x
         let topEdge = aiPanel.frame.maxY
         let y = topEdge - height
-        let targetRect = NSRect(x: x, y: y, width: 360, height: height)
+        let targetRect = NSRect(x: x, y: y, width: width, height: height)
         
-        if abs(aiPanel.frame.height - height) < 1.0 { return }
+        if abs(aiPanel.frame.height - height) < 1.0 && abs(aiPanel.frame.width - width) < 1.0 { return }
         
         if animated {
             NSAnimationContext.runAnimationGroup { ctx in
@@ -388,7 +452,9 @@ class StatusBarController: NSObject {
             quotaMgr.fetchCodexLiveQuota(force: true)
             
             if let button = item.button {
-                positionPanel(aiPanel, near: button, panelWidth: 360, panelHeight: currentAIPanelHeight())
+                let screen = button.window?.screen ?? NSScreen.main ?? NSScreen.screens.first
+                let profile = ScreenAdaptiveProfile.current(for: screen)
+                positionPanel(aiPanel, near: button, panelWidth: profile.panelWidth, panelHeight: currentAIPanelHeight(profile: profile))
             }
             aiPanel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
