@@ -119,8 +119,8 @@ struct VisualEffectBlur: NSViewRepresentable {
 
 // MARK: - Nothing OS / Teenage Engineering Minimalist Industrial Tokens
 struct ThemeColors {
-    // ── Airy Frosted Glass & Translucent Background Layering (Figma: rgba(45, 46, 48, 0.85) / #2D2E30 @ 85%)
-    static let glassTint = Color(hex: 0x2D2E30, alpha: 0.85)      // Figma panel background
+    // ── Airy Frosted Glass & Translucent Background Layering (Figma: rgba(45, 46, 48, 0.50) / #2D2E30 @ 50%)
+    static let glassTint = Color(hex: 0x2D2E30, alpha: 0.50)      // Figma panel background (50% opacity)
     static let matteBg = glassTint
     static let matteCard = Color(hex: 0x161820, alpha: 0.52)     // Refined translucent smoke tile (neither milky nor pitch black)
     static let matteCardSecondary = Color(hex: 0x1D202A, alpha: 0.42) // Interactive translucent tile

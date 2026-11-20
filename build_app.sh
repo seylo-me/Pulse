@@ -4,7 +4,7 @@
 set -e
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="Pulse"
-VERSION="1.5.4"
+VERSION="1.5.5"
 BUNDLE_ID="com.sulee.pulse"
 DIST_DIR="$PROJ_DIR/dist"
 
@@ -65,7 +65,7 @@ assemble_bundle() {
     <key>CFBundleShortVersionString</key>
     <string>$VERSION</string>
     <key>CFBundleVersion</key>
-    <string>19</string>
+    <string>20</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>

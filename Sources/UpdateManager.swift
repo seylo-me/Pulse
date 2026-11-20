@@ -33,7 +33,7 @@ final class UpdateManager: ObservableObject {
     static let shared = UpdateManager()
     
     static var currentVersion: String {
-        return (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.4"
+        return (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.5"
     }
     
     @Published var hasUpdate: Bool = false
