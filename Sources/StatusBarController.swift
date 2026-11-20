@@ -429,26 +429,20 @@ class StatusBarController: NSObject {
         let height = currentAIPanelHeight(profile: profile)
         let width = profile.panelWidth
         
-        // 如果目标高度相同且已经在此高度或已有动画正在平滑过渡，直接返回，避免重复打断产生弹跳
-        if abs(targetAIPanelHeight - height) < 0.5 { return }
+        // 如果目标高度相同且已经在此高度，直接返回，避免重复打断产生弹跳
+        if abs(aiPanel.frame.height - height) < 0.5 { return }
         targetAIPanelHeight = height
         
-        // 彻底锁定 X 坐标与顶边 Y 坐标，使用绝对稳定的顶边锚点，绝不产生垂直跳变
+        // 彻底锁定 X 坐标与顶边 Y 坐标，使用绝对稳定的顶边锚点，只从底部扩展或收回高度，绝不产生整体上下弹跳
         let x = aiPanel.frame.origin.x
         let topEdge = (aiPanelTopEdge > 0) ? aiPanelTopEdge : aiPanel.frame.maxY
         let y = topEdge - height
         let targetRect = NSRect(x: x, y: y, width: width, height: height)
         
-        if animated {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.20
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                ctx.allowsImplicitAnimation = true
-                aiPanel.animator().setFrame(targetRect, display: true)
-            }
-        } else {
-            aiPanel.setFrame(targetRect, display: true)
-        }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        aiPanel.setFrame(targetRect, display: true)
+        CATransaction.commit()
     }
 
     // Toggle Independent AI Panel

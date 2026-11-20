@@ -1029,7 +1029,7 @@ struct AIPopupView: View {
             .padding(.horizontal, 14)
             .padding(.top, 4)
             .padding(.bottom, 6)
-            .animation(nil, value: quotaMgr.selectedAITab)
+            .transaction { $0.animation = nil }
             
             aiFooterView
         }
