@@ -1106,6 +1106,7 @@ struct AIPopupView: View {
                     let isSelected = (quotaMgr.selectedAITab == source)
                     
                     Button(action: {
+                        guard quotaMgr.selectedAITab != source else { return }
                         withAnimation(.easeInOut(duration: 0.18)) {
                             quotaMgr.selectedAITab = source
                         }

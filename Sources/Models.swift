@@ -242,7 +242,7 @@ struct ProcessItem: Identifiable {
 
 // MARK: - Time-Window Rolling Quota Model (7d & 5h, Matching Reference 1)
 struct RollingWindowQuota: Identifiable {
-    let id = UUID()
+    var id: String { windowLabel }
     let windowLabel: String    // "7d" or "5h"
     let percent: Double        // 0 to 100
     let resetText: String      // e.g. "resets 6d 12h · 11-21 09:32" or "resets 20m · 20:55"
@@ -250,7 +250,7 @@ struct RollingWindowQuota: Identifiable {
 }
 
 struct ModelCategoryQuota: Identifiable {
-    let id = UUID()
+    var id: String { categoryName }
     let categoryName: String   // "Gemini Models", "Claude and GPT models", "Gemini 4 Argon"
     let windows: [RollingWindowQuota]
 }

@@ -101,6 +101,8 @@ class StatusBarController: NSObject {
     private var systemPanel: PulsePanel!
     private var aiPanel: PulsePanel!
     private var aiHosting: NSHostingView<AIPopupView>?
+    private var targetAIPanelHeight: CGFloat = 0.0
+    private var aiPanelTopEdge: CGFloat = 0.0
     
     private let monitor = SystemMonitor()
     private let quotaMgr = QuotaManager()
@@ -370,6 +372,7 @@ class StatusBarController: NSObject {
     func closeAIPanel() {
         aiPanel?.orderOut(nil)
         quotaMgr.isAIPanelVisible = false
+        targetAIPanelHeight = 0.0
         updateEventMonitorState()
     }
     
@@ -408,26 +411,16 @@ class StatusBarController: NSObject {
         // - 1 组活跃配额分类（如 Codex 单模型通用配额）：329.0 pt
         // - 每增加 1 组多模型配额分类（如 Antigravity 双模型组）：+107.0 pt，即 436.0 pt
         // - 每个分类下的配额时间窗口（基准 2 个窗口）：超出或少于 2 个窗口每项差值 40.0 pt
-        var calculated: CGFloat
         if aiProfile.categories.isEmpty {
-            calculated = 329.0
+            return 329.0
         } else {
-            calculated = 329.0 + CGFloat(max(0, aiProfile.categories.count - 1)) * 107.0
+            var calculated: CGFloat = 329.0 + CGFloat(max(0, aiProfile.categories.count - 1)) * 107.0
             for cat in aiProfile.categories {
                 let winDiff = cat.windows.count - 2
                 calculated += CGFloat(winDiff) * 40.0
             }
+            return calculated
         }
-        
-        // 若已有活跃的 aiHosting 并且具备实际渲染 fittingSize，取最大值彻底杜绝任何顶部或底部裁切
-        if let host = aiHosting {
-            let fitH = ceil(host.fittingSize.height)
-            if fitH >= 300 && fitH <= 650 {
-                return max(calculated, fitH)
-            }
-        }
-        
-        return calculated
     }
 
     func updateAIPanelHeight(animated: Bool = true) {
@@ -437,13 +430,15 @@ class StatusBarController: NSObject {
         let height = currentAIPanelHeight(profile: profile)
         let width = profile.panelWidth
         
-        // 彻底锁定 X 坐标与顶边 Y 坐标，绝不产生水平漂移与顶部震颤
+        // 如果目标高度相同且已经在此高度或已有动画正在平滑过渡，直接返回，避免重复打断产生弹跳
+        if abs(targetAIPanelHeight - height) < 0.5 && abs(aiPanel.frame.height - height) < 1.0 { return }
+        targetAIPanelHeight = height
+        
+        // 彻底锁定 X 坐标与顶边 Y 坐标，使用绝对稳定的顶边锚点，绝不产生垂直跳变
         let x = aiPanel.frame.origin.x
-        let topEdge = aiPanel.frame.maxY
+        let topEdge = (aiPanelTopEdge > 0) ? aiPanelTopEdge : aiPanel.frame.maxY
         let y = topEdge - height
         let targetRect = NSRect(x: x, y: y, width: width, height: height)
-        
-        if abs(aiPanel.frame.height - height) < 1.0 && abs(aiPanel.frame.width - width) < 1.0 { return }
         
         if animated {
             NSAnimationContext.runAnimationGroup { ctx in
@@ -496,7 +491,13 @@ class StatusBarController: NSObject {
         // Guarantee that the top of the panel is always safely 6pt below the menu bar
         let maxAvailableHeight = max(200.0, buttonFrame.minY - screenVisible.minY - 16.0)
         let actualHeight = min(panelHeight, maxAvailableHeight)
-        let y = buttonFrame.minY - actualHeight - 6.0
+        let topY = buttonFrame.minY - 6.0
+        let y = topY - actualHeight
+        
+        if p == aiPanel {
+            aiPanelTopEdge = topY
+            targetAIPanelHeight = actualHeight
+        }
         
         p.setFrame(NSRect(x: x, y: y, width: panelWidth, height: actualHeight), display: true)
     }

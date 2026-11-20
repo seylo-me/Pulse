@@ -265,15 +265,15 @@ class QuotaManager: ObservableObject {
                     categoryName: "Gemini Models",
                     windows: [
                         RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: g7d,
-                            resetText: g7dReset,
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
                             windowLabel: "5h",
                             percent: g5h,
                             resetText: g5hReset,
+                            isExhausted: false
+                        ),
+                        RollingWindowQuota(
+                            windowLabel: "7d",
+                            percent: g7d,
+                            resetText: g7dReset,
                             isExhausted: false
                         )
                     ]
@@ -282,15 +282,15 @@ class QuotaManager: ObservableObject {
                     categoryName: "Claude and GPT models",
                     windows: [
                         RollingWindowQuota(
-                            windowLabel: "7d",
-                            percent: cg7d,
-                            resetText: cg7dReset,
-                            isExhausted: false
-                        ),
-                        RollingWindowQuota(
                             windowLabel: "5h",
                             percent: cg5h,
                             resetText: cg5hReset,
+                            isExhausted: false
+                        ),
+                        RollingWindowQuota(
+                            windowLabel: "7d",
+                            percent: cg7d,
+                            resetText: cg7dReset,
                             isExhausted: false
                         )
                     ]
