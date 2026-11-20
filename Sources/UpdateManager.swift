@@ -124,15 +124,26 @@ final class UpdateManager: ObservableObject {
                     self.releaseNotes = release.body ?? ""
                     self.releaseHtmlUrl = release.htmlUrl ?? "https://github.com/seylo-me/Pulse/releases"
                     
-                    // Pick Universal zip asset first, then any zip
+                    // Pick asset according to architecture:
                     var pickedAssetUrl: String? = nil
                     if let assets = release.assets {
-                        if let universalZip = assets.first(where: { $0.name.lowercased().contains("universal") && $0.name.hasSuffix(".zip") }) {
-                            pickedAssetUrl = universalZip.browserDownloadUrl
-                        } else if let anyZip = assets.first(where: { $0.name.hasSuffix(".zip") }) {
-                            pickedAssetUrl = anyZip.browserDownloadUrl
-                        } else if let universalDmg = assets.first(where: { $0.name.lowercased().contains("universal") && $0.name.hasSuffix(".dmg") }) {
-                            pickedAssetUrl = universalDmg.browserDownloadUrl
+                        #if arch(arm64)
+                        if let armZip = assets.first(where: { ($0.name.lowercased().contains("applesilicon") || $0.name.lowercased().contains("arm64")) && $0.name.hasSuffix(".zip") }) {
+                            pickedAssetUrl = armZip.browserDownloadUrl
+                        }
+                        #elseif arch(x86_64)
+                        if let intelZip = assets.first(where: { ($0.name.lowercased().contains("intel") || $0.name.lowercased().contains("x86_64")) && $0.name.hasSuffix(".zip") }) {
+                            pickedAssetUrl = intelZip.browserDownloadUrl
+                        }
+                        #endif
+                        if pickedAssetUrl == nil {
+                            if let universalZip = assets.first(where: { $0.name.lowercased().contains("universal") && $0.name.hasSuffix(".zip") }) {
+                                pickedAssetUrl = universalZip.browserDownloadUrl
+                            } else if let anyZip = assets.first(where: { $0.name.hasSuffix(".zip") }) {
+                                pickedAssetUrl = anyZip.browserDownloadUrl
+                            } else if let universalDmg = assets.first(where: { $0.name.lowercased().contains("universal") && $0.name.hasSuffix(".dmg") }) {
+                                pickedAssetUrl = universalDmg.browserDownloadUrl
+                            }
                         }
                     }
                     self.downloadUrl = pickedAssetUrl ?? ""

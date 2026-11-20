@@ -98,7 +98,11 @@ assemble_bundle "$UNIVERSAL_APP" "$UNIVERSAL_BIN"
 ARM64_APP="$DIST_DIR/Pulse-AppleSilicon.app"
 assemble_bundle "$ARM64_APP" "$ARM64_BIN"
 
-# 3. 创建 DMG 安装包
+# 3. 专用 Intel 架构应用包 (x86_64 原生)
+INTEL_APP="$DIST_DIR/Pulse-Intel.app"
+assemble_bundle "$INTEL_APP" "$X86_BIN"
+
+# 4. 创建 DMG 安装包
 create_dmg() {
     local APP_PATH="$1"
     local DMG_NAME="$2"
@@ -116,19 +120,23 @@ create_dmg() {
 }
 
 create_dmg "$ARM64_APP" "Pulse-v${VERSION}-AppleSilicon.dmg" "Pulse (Apple Silicon)"
+create_dmg "$INTEL_APP" "Pulse-v${VERSION}-Intel.dmg" "Pulse (Intel)"
 create_dmg "$UNIVERSAL_APP" "Pulse-v${VERSION}-Universal.dmg" "Pulse (Universal)"
 
-# 4. 创建 ZIP 压缩包 (方便 GitHub Releases 快速解压使用)
+# 5. 创建 ZIP 压缩包 (方便 GitHub Releases 快速解压及自动在线更新使用)
 cd "$DIST_DIR"
-rm -f "Pulse-v${VERSION}-AppleSilicon.zip" "Pulse-v${VERSION}-Universal.zip"
+rm -f "Pulse-v${VERSION}-AppleSilicon.zip" "Pulse-v${VERSION}-Intel.zip" "Pulse-v${VERSION}-Universal.zip"
 zip -qry "Pulse-v${VERSION}-AppleSilicon.zip" "Pulse-AppleSilicon.app"
+zip -qry "Pulse-v${VERSION}-Intel.zip" "Pulse-Intel.app"
 zip -qry "Pulse-v${VERSION}-Universal.zip" "$APP_NAME.app"
 echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v${VERSION}-AppleSilicon.zip"
+echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v${VERSION}-Intel.zip"
 echo "  ✅ 生成 ZIP: $DIST_DIR/Pulse-v${VERSION}-Universal.zip"
 
 echo ""
 echo "🎉 全部构建完成！"
 echo "--------------------------------------------------------"
 echo "📱 Apple Silicon 安装包: $DIST_DIR/Pulse-v${VERSION}-AppleSilicon.dmg"
+echo "💻 Intel 安装包:         $DIST_DIR/Pulse-v${VERSION}-Intel.dmg"
 echo "🌐 Universal 通用安装包: $DIST_DIR/Pulse-v${VERSION}-Universal.dmg"
 echo "--------------------------------------------------------"

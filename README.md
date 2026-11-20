@@ -55,15 +55,16 @@
 
 | 架构版本 | 适用机型 | 下载安装包 |
 | :--- | :--- | :--- |
-| **Apple Silicon 专属版** | Mac mini / MacBook / iMac (M1, M2, M3, M4 芯片) | `Pulse-v1.5.5-AppleSilicon.dmg` |
-| **Universal 通用版** | 兼容所有 Apple Silicon 芯片 与 Intel 处理器 Mac | `Pulse-v1.5.5-Universal.dmg` |
-| **通用快速压缩包** | 即解即用，支持一键原生自动在线更新 | `Pulse-v1.5.5-Universal.zip` |
+| **Apple Silicon 专属版** | Mac mini / MacBook / iMac (M1, M2, M3, M4 芯片) | `Pulse-v1.5.5-AppleSilicon.dmg` / `.zip` |
+| **Intel 专属版** | 搭载 Intel 处理器的老款 Mac 设备 | `Pulse-v1.5.5-Intel.dmg` / `.zip` |
+| **Universal 通用版** | 兼容所有 Apple Silicon 芯片 与 Intel 处理器 Mac | `Pulse-v1.5.5-Universal.dmg` / `.zip` |
 
 ---
 
-## 🚀 原生自动更新 (Auto-Updater)
+## 🚀 原生架构感知自动更新 (Auto-Updater)
 - **开箱即用自动更新**：应用启动时静默检查 GitHub Releases 最新版本，亦可在右键菜单中点击「检查更新...」；
-- **无缝就地替换与重启**：发现新版本后一键下载 Universal 通用包、自动提取、安全替换 `/Applications/Pulse.app`、清理隔离属性并自动重启；
+- **智能架构匹配**：自动识别本机芯片架构（Apple Silicon M系列下载 `AppleSilicon.zip`，Intel 下载 `Intel.zip`），兼身体积小、运行快；
+- **无缝就地替换与重启**：后台自动下载、解压提取、安全替换 `/Applications/Pulse.app`、清理隔离属性并自动重启；
 - **面板右下角版本标识**：浮窗右下角优雅展示当前版本号（如 `v1.5.5`），发现新版时呈现动态更新胶囊。
 
 > **提示**：下载 DMG 后，将 `Pulse.app` 拖入 `Applications` 应用程序文件夹即可。
