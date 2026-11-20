@@ -233,7 +233,6 @@ class StatusBarController: NSObject {
         quotaMgr.onActiveAIChanged = { [weak self] in
             DispatchQueue.main.async {
                 self?.updateAISize()
-                self?.updateAIPanelHeight(animated: true)
             }
         }
         
@@ -431,7 +430,7 @@ class StatusBarController: NSObject {
         let width = profile.panelWidth
         
         // 如果目标高度相同且已经在此高度或已有动画正在平滑过渡，直接返回，避免重复打断产生弹跳
-        if abs(targetAIPanelHeight - height) < 0.5 && abs(aiPanel.frame.height - height) < 1.0 { return }
+        if abs(targetAIPanelHeight - height) < 0.5 { return }
         targetAIPanelHeight = height
         
         // 彻底锁定 X 坐标与顶边 Y 坐标，使用绝对稳定的顶边锚点，绝不产生垂直跳变

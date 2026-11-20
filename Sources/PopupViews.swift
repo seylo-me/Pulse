@@ -1025,12 +1025,11 @@ struct AIPopupView: View {
                     source: source,
                     profile: quotaMgr.profile(for: source)
                 )
-                .id(source)
             }
             .padding(.horizontal, 14)
             .padding(.top, 4)
             .padding(.bottom, 6)
-            .transaction { $0.animation = nil }
+            .animation(nil, value: quotaMgr.selectedAITab)
             
             aiFooterView
         }
@@ -1112,9 +1111,9 @@ struct AIPopupView: View {
                         }
                         quotaMgr.setStatusAI(source) // 切换直接联动状态栏，无需二次操作！
                         if source == .codex {
-                            quotaMgr.fetchCodexLiveQuota(force: true)
+                            quotaMgr.fetchCodexLiveQuota(force: false)
                         } else if source == .antigravity {
-                            quotaMgr.fetchAntigravityLiveDaemonQuota(force: true)
+                            quotaMgr.fetchAntigravityLiveDaemonQuota(force: false)
                         }
                     }) {
                         HStack(spacing: 5) {
