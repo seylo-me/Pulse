@@ -575,7 +575,8 @@ class SystemMonitor: ObservableObject {
                     
                     if let inUse = perf["inUseVidMemoryBytes"] as? NSNumber {
                         let totalBytes = self.cachedGPUInfo.totalVRAMBytes > 0 ? self.cachedGPUInfo.totalVRAMBytes : (8.0 * 1024 * 1024 * 1024)
-                        bestVRAMPct = min(100.0, (inUse.doubleValue / totalBytes) * 100.0)
+                        let calculatedPct = min(100.0, (inUse.doubleValue / totalBytes) * 100.0)
+                        bestVRAMPct = max(bestVRAMPct, calculatedPct)
                     }
                 }
                 IOObjectRelease(entry)

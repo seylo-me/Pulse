@@ -741,8 +741,16 @@ struct SystemPopupView: View {
                 }
                 
                 HStack(spacing: 5) {
-                    gpuMiniBadge(title: "GPU 负载", value: String(format: "%.0f%%", monitor.snapshot.gpuUsage), valueColor: ThemeColors.accentBlue)
-                    gpuMiniBadge(title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.accentViolet)
+                    gpuMiniBadge(
+                        title: "GPU 负载",
+                        value: String(format: "%.0f%%", monitor.snapshot.gpuUsage),
+                        valueColor: monitor.snapshot.gpuUsage >= 50.0 ? ThemeColors.accentViolet : ThemeColors.accentCyan
+                    )
+                    gpuMiniBadge(
+                        title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用",
+                        value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage),
+                        valueColor: monitor.snapshot.gpuVRAMUsage >= 50.0 ? ThemeColors.accentViolet : ThemeColors.accentCyan
+                    )
                     gpuMiniBadge(title: "核心温度", value: monitor.snapshot.gpuTemp, valueColor: ThemeColors.textPrimary)
                     gpuMiniBadge(title: "架构", value: monitor.snapshot.gpuArch, valueColor: ThemeColors.textSecondary)
                 }
