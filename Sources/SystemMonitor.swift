@@ -74,7 +74,7 @@ class SystemMonitor: ObservableObject {
     
     // Cached hardware traits (computed once on launch to prevent continuous sysctl/IOKit polling)
     private lazy var cachedCPUBrand: String = { self.fetchCPUBrand() }()
-    private lazy var cachedGPUInfo: (brand: String, arch: String, isUnified: Bool) = { self.fetchGPUInfo() }()
+    private lazy var cachedGPUInfo: (brand: String, arch: String, isUnified: Bool, totalVRAMBytes: Double) = { self.fetchGPUInfo() }()
     private lazy var cachedCPUCores: (cores: Int, threads: Int) = { self.fetchCPUCores() }()
     private lazy var cachedCPUFreq: String = { self.fetchCPUFreq(cpuBrand: self.cachedCPUBrand) }()
     private lazy var cachedIsDesktop: Bool = { self.fetchIsDesktopMac() }()
@@ -512,26 +512,40 @@ class SystemMonitor: ObservableObject {
         #endif
     }
     
-    private func fetchGPUInfo() -> (brand: String, arch: String, isUnified: Bool) {
+    private func fetchGPUInfo() -> (brand: String, arch: String, isUnified: Bool, totalVRAMBytes: Double) {
         if let dev = MTLCreateSystemDefaultDevice() {
             let name = dev.name
             let isUnified = dev.hasUnifiedMemory
-            let maxMemGB = Double(dev.recommendedMaxWorkingSetSize) / (1024.0 * 1024.0 * 1024.0)
+            let maxMemBytes = Double(dev.recommendedMaxWorkingSetSize)
+            let maxMemGB = maxMemBytes / (1024.0 * 1024.0 * 1024.0)
             
+            let arch: String
             if isUnified {
-                return ("\(name) · 统一内存架构", "Unified", true)
+                arch = "Unified"
+            } else if name.contains("5500") || name.contains("5700") || name.contains("6800") || name.contains("6900") || name.contains("Navi") {
+                arch = "RDNA"
+            } else if name.contains("Vega") {
+                arch = "Vega"
+            } else if name.contains("Polaris") || name.contains("580") || name.contains("570") {
+                arch = "Polaris"
+            } else {
+                arch = "PCIe 独显"
+            }
+            
+            let brandStr: String
+            if isUnified {
+                brandStr = "\(name) · 统一内存架构"
             } else {
                 let vram = round(maxMemGB)
                 let vramStr = vram > 0 ? "\(Int(vram)) GB 显存" : ""
-                let arch = name.components(separatedBy: " ").last ?? "PCIe"
-                let brandStr = "\(name)\(vramStr.isEmpty ? "" : " · \(vramStr)")"
-                return (brandStr, arch, false)
+                brandStr = "\(name)\(vramStr.isEmpty ? "" : " · \(vramStr)")"
             }
+            return (brandStr, arch, isUnified, maxMemBytes)
         }
         #if arch(arm64)
-        return ("Apple Silicon GPU · 统一内存架构", "Unified", true)
+        return ("Apple Silicon GPU · 统一内存架构", "Unified", true, 0)
         #else
-        return ("集成/独立显卡", "Discrete", false)
+        return ("集成/独立显卡", "PCIe", false, 8.0 * 1024 * 1024 * 1024)
         #endif
     }
     
@@ -559,12 +573,9 @@ class SystemMonitor: ObservableObject {
                         bestTempStr = "\(temp.intValue)°C"
                     }
                     
-                    if let inUse = perf["inUseVidMemoryBytes"] as? NSNumber,
-                       let free = perf["vramFreeBytes"] as? NSNumber {
-                        let total = inUse.doubleValue + free.doubleValue
-                        if total > 0 {
-                            bestVRAMPct = (inUse.doubleValue / total) * 100.0
-                        }
+                    if let inUse = perf["inUseVidMemoryBytes"] as? NSNumber {
+                        let totalBytes = self.cachedGPUInfo.totalVRAMBytes > 0 ? self.cachedGPUInfo.totalVRAMBytes : (8.0 * 1024 * 1024 * 1024)
+                        bestVRAMPct = min(100.0, (inUse.doubleValue / totalBytes) * 100.0)
                     }
                 }
                 IOObjectRelease(entry)
