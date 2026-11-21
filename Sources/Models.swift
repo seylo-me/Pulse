@@ -232,7 +232,7 @@ struct SpectrumBar: Identifiable {
 
 // MARK: - Process Traffic Item
 struct ProcessItem: Identifiable {
-    let id = UUID()
+    var id: String { name }
     let name: String
     let iconSystemName: String
     let uploadSpeed: String

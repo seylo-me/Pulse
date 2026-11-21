@@ -56,6 +56,11 @@ class SystemMonitor: ObservableObject {
                 if Date().timeIntervalSince(lastNetworkFetchTime) > 3.0 {
                     fetchNetworkDetails()
                 }
+            } else {
+                // Clear process sample cache when panel closes to prevent stale deltas
+                processMonitorQueue.async { [weak self] in
+                    self?.prevProcessTraffic = [:]
+                }
             }
         }
     }
@@ -76,6 +81,12 @@ class SystemMonitor: ObservableObject {
     private var lastDiskCheckTime: Date = .distantPast
     private var cachedUptime: String = "14小时 22分钟"
     private var lastUptimeCheckTime: Date = .distantPast
+    
+    // Process Network Telemetry
+    private let processMonitorQueue = DispatchQueue(label: "com.sulee.pulse.processMonitor", qos: .utility)
+    private var isSamplingProcesses = false
+    private var lastProcessSampleTime: Date = Date()
+    private var prevProcessTraffic: [String: (rx: UInt64, tx: UInt64)] = [:]
     
     private let barCount = 48
     private var timer: Timer?
@@ -224,7 +235,7 @@ class SystemMonitor: ObservableObject {
         
         self.snapshot = newSnap
         updateSpectrum(up: newSnap.uploadSpeed, down: newSnap.downloadSpeed)
-        updateProcesses(upSpeed: newSnap.uploadSpeed, downSpeed: newSnap.downloadSpeed)
+        sampleProcessTraffic()
     }
     
     private func updateSpectrum(up: Double, down: Double) {
@@ -242,14 +253,229 @@ class SystemMonitor: ObservableObject {
         self.spectrumBars = updated
     }
     
-    private func updateProcesses(upSpeed: Double, downSpeed: Double) {
-        let p0Up = Int(upSpeed * 0.45)
-        let p0Down = Int(downSpeed * 0.40)
-        let p1Down = Int(downSpeed * 0.25)
+    // MARK: - Process-level Live Network Monitoring
+    private func sampleProcessTraffic() {
+        guard !isSamplingProcesses else { return }
+        isSamplingProcesses = true
         
-        if topProcesses.count >= 5 {
-            topProcesses[0] = ProcessItem(name: "Antigravity", iconSystemName: "sparkles", uploadSpeed: "\(max(1, p0Up)) K", downloadSpeed: "\(max(1, p0Down)) K", isHighlighted: true)
-            topProcesses[3] = ProcessItem(name: "Google Chrome", iconSystemName: "globe", uploadSpeed: "3 K", downloadSpeed: "\(max(1, p1Down)) K", isHighlighted: false)
+        processMonitorQueue.async { [weak self] in
+            guard let self = self else { return }
+            let currentSamples = self.fetchProcessRawTraffic()
+            let now = Date()
+            
+            let prev = self.prevProcessTraffic
+            let prevTime = self.lastProcessSampleTime
+            let elapsed = max(0.5, now.timeIntervalSince(prevTime))
+            
+            self.prevProcessTraffic = currentSamples
+            self.lastProcessSampleTime = now
+            
+            // If this is the initial sample, schedule a fast follow-up after 0.6s
+            if prev.isEmpty {
+                self.processMonitorQueue.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                    self?.isSamplingProcesses = false
+                    self?.sampleProcessTraffic()
+                }
+                return
+            }
+            
+            // Group delta speeds by Application Name
+            var appSpeeds: [String: (tx: Double, rx: Double, icon: String, isHighlighted: Bool)] = [:]
+            
+            for (rawKey, (curRx, curTx)) in currentSamples {
+                if let (prevRx, prevTx) = prev[rawKey] {
+                    let dRx = curRx >= prevRx ? Double(curRx - prevRx) / elapsed : 0
+                    let dTx = curTx >= prevTx ? Double(curTx - prevTx) / elapsed : 0
+                    
+                    let (appName, icon, isHighlighted) = self.categorizeProcess(rawKey)
+                    if var existing = appSpeeds[appName] {
+                        existing.tx += dTx
+                        existing.rx += dRx
+                        appSpeeds[appName] = existing
+                    } else {
+                        appSpeeds[appName] = (tx: dTx, rx: dRx, icon: icon, isHighlighted: isHighlighted)
+                    }
+                }
+            }
+            
+            struct ScoredProcess {
+                let item: ProcessItem
+                let totalSpeed: Double
+            }
+            
+            var scoredList: [ScoredProcess] = []
+            for (name, data) in appSpeeds {
+                let total = data.tx + data.rx
+                let item = ProcessItem(
+                    name: name,
+                    iconSystemName: data.icon,
+                    uploadSpeed: self.formatProcessSpeed(data.tx),
+                    downloadSpeed: self.formatProcessSpeed(data.rx),
+                    isHighlighted: data.isHighlighted
+                )
+                scoredList.append(ScoredProcess(item: item, totalSpeed: total))
+            }
+            
+            // Sort by total bandwidth utilization descending
+            scoredList.sort { $0.totalSpeed > $1.totalSpeed }
+            
+            var result: [ProcessItem] = []
+            var seen = Set<String>()
+            
+            // 1. Add processes that currently have real network throughput (> 0)
+            for sp in scoredList where sp.totalSpeed > 0 {
+                if !seen.contains(sp.item.name) {
+                    seen.insert(sp.item.name)
+                    result.append(sp.item)
+                    if result.count == 5 { break }
+                }
+            }
+            
+            // 2. If fewer than 5 active, add remaining detected system processes
+            if result.count < 5 {
+                for sp in scoredList {
+                    if !seen.contains(sp.item.name) {
+                        seen.insert(sp.item.name)
+                        result.append(sp.item)
+                        if result.count == 5 { break }
+                    }
+                }
+            }
+            
+            // 3. Fallback to common standby apps if still under 5
+            if result.count < 5 {
+                let defaults: [(name: String, icon: String, isHigh: Bool)] = [
+                    ("Antigravity", "sparkles", true),
+                    ("Figma", "paintbrush.pointed", false),
+                    ("Google Chrome", "globe", false),
+                    ("WindowServer", "macwindow", false),
+                    ("QQLive", "play.tv", false)
+                ]
+                for d in defaults {
+                    if !seen.contains(d.name) {
+                        seen.insert(d.name)
+                        result.append(ProcessItem(
+                            name: d.name,
+                            iconSystemName: d.icon,
+                            uploadSpeed: "0 K",
+                            downloadSpeed: "0 K",
+                            isHighlighted: d.isHigh
+                        ))
+                        if result.count == 5 { break }
+                    }
+                }
+            }
+            
+            DispatchQueue.main.async {
+                self.topProcesses = result
+                self.isSamplingProcesses = false
+            }
+        }
+    }
+    
+    private func fetchProcessRawTraffic() -> [String: (rx: UInt64, tx: UInt64)] {
+        let task = Process()
+        task.launchPath = "/usr/bin/nettop"
+        task.arguments = ["-P", "-L", "1", "-k", "state,interface", "-J", "bytes_in,bytes_out"]
+        
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        
+        do {
+            try task.run()
+        } catch {
+            return [:]
+        }
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        task.waitUntilExit()
+        
+        guard let output = String(data: data, encoding: .utf8) else { return [:] }
+        var results: [String: (rx: UInt64, tx: UInt64)] = [:]
+        
+        let lines = output.split(separator: "\n")
+        for line in lines.dropFirst() {
+            let parts = line.split(separator: ",", omittingEmptySubsequences: false)
+            if parts.count >= 3 {
+                let procKey = String(parts[0])
+                if let bytesIn = UInt64(parts[1]), let bytesOut = UInt64(parts[2]) {
+                    results[procKey] = (rx: bytesIn, tx: bytesOut)
+                }
+            }
+        }
+        return results
+    }
+    
+    private func categorizeProcess(_ rawKey: String) -> (name: String, icon: String, isHighlighted: Bool) {
+        var base = rawKey
+        if let lastDot = base.lastIndex(of: ".") {
+            let suffix = base[base.index(after: lastDot)...]
+            if Int(suffix) != nil {
+                base = String(base[..<lastDot])
+            }
+        }
+        
+        let lower = base.lowercased()
+        if lower.contains("figma") {
+            return ("Figma", "paintbrush.pointed", false)
+        } else if lower.contains("antigravity") || lower.contains("language_server") {
+            return ("Antigravity", "sparkles", true)
+        } else if lower.contains("chrome") {
+            return ("Google Chrome", "globe", false)
+        } else if lower.contains("codex") {
+            return ("Codex", "chevron.left.forwardslash.chevron.right", false)
+        } else if lower.contains("safari") || lower.contains("webkit") {
+            return ("Safari", "safari", false)
+        } else if lower.contains("wechat") || lower.contains("wetype") {
+            return ("微信", "message", false)
+        } else if lower.contains("feishu") || lower.contains("lark") {
+            return ("飞书", "bubble.left.and.bubble.right", false)
+        } else if lower.contains("youku") || lower.contains("优酷") {
+            return ("优酷", "play.tv", false)
+        } else if lower.contains("qqlive") || lower.contains("qq") {
+            return ("腾讯视频", "play.tv", false)
+        } else if lower.contains("bilibili") {
+            return ("哔哩哔哩", "play.tv", false)
+        } else if lower.contains("spotify") || lower.contains("music") {
+            return ("音乐", "music.note", false)
+        } else if lower.contains("mihomo") || lower.contains("clash") {
+            return ("Mihomo/代理", "network", false)
+        } else if lower.contains("pulse") {
+            return ("Pulse", "waveform.path.ecg", false)
+        } else if lower.contains("windowserver") {
+            return ("WindowServer", "macwindow", false)
+        } else if lower.contains("onedrive") || lower.contains("dropbox") || lower.contains("cloudd") {
+            return ("云盘同步", "cloud", false)
+        } else if lower.contains("photoshop") || lower.contains("adobe") {
+            return ("Adobe", "sparkles", false)
+        } else if lower.contains("xcode") || lower.contains("swift") {
+            return ("Xcode", "hammer", false)
+        } else if lower.contains("git") || lower.contains("ssh") {
+            return ("Git/SSH", "terminal", false)
+        } else if lower.contains("mdnsresponder") || lower.contains("rapportd") || lower.contains("remoted") || lower.contains("apsd") {
+            return (base, "gearshape", false)
+        } else {
+            var clean = base
+            if clean.hasSuffix(" Helper") {
+                clean = String(clean.dropLast(7))
+            } else if clean.hasSuffix(" Hel") {
+                clean = String(clean.dropLast(4))
+            }
+            return (clean, "app", false)
+        }
+    }
+    
+    private func formatProcessSpeed(_ bytesPerSec: Double) -> String {
+        let kb = bytesPerSec / 1024.0
+        if kb >= 10240 {
+            return String(format: "%.1f M", kb / 1024.0)
+        } else if kb >= 1.0 {
+            return "\(Int(kb)) K"
+        } else if bytesPerSec > 0 {
+            return "1 K"
+        } else {
+            return "0 K"
         }
     }
     
