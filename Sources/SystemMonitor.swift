@@ -289,7 +289,9 @@ class SystemMonitor: ObservableObject {
                     let dRx = curRx >= prevRx ? Double(curRx - prevRx) / elapsed : 0
                     let dTx = curTx >= prevTx ? Double(curTx - prevTx) / elapsed : 0
                     
-                    let (appName, icon, isHighlighted) = self.categorizeProcess(rawKey)
+                    guard let (appName, icon, isHighlighted) = self.categorizeProcess(rawKey) else {
+                        continue
+                    }
                     if var existing = appSpeeds[appName] {
                         existing.tx += dTx
                         existing.rx += dRx
@@ -409,7 +411,7 @@ class SystemMonitor: ObservableObject {
         return results
     }
     
-    private func categorizeProcess(_ rawKey: String) -> (name: String, icon: String, isHighlighted: Bool) {
+    private func categorizeProcess(_ rawKey: String) -> (name: String, icon: String, isHighlighted: Bool)? {
         var base = rawKey
         if let lastDot = base.lastIndex(of: ".") {
             let suffix = base[base.index(after: lastDot)...]
@@ -419,6 +421,14 @@ class SystemMonitor: ObservableObject {
         }
         
         let lower = base.lowercased()
+        
+        // Exclude local proxy/tunnel relays and Pulse itself
+        if lower.contains("mihomo") || lower.contains("clash") || lower.contains("surge") ||
+           lower.contains("sing-box") || lower.contains("v2ray") || lower.contains("shadowsocks") ||
+           lower.contains("quantumult") || lower.contains("loon") || lower.contains("pulse") {
+            return nil
+        }
+        
         if lower.contains("figma") {
             return ("Figma", "paintbrush.pointed", false)
         } else if lower.contains("antigravity") || lower.contains("language_server") {
@@ -441,10 +451,6 @@ class SystemMonitor: ObservableObject {
             return ("哔哩哔哩", "play.tv", false)
         } else if lower.contains("spotify") || lower.contains("music") {
             return ("音乐", "music.note", false)
-        } else if lower.contains("mihomo") || lower.contains("clash") {
-            return ("Mihomo/代理", "network", false)
-        } else if lower.contains("pulse") {
-            return ("Pulse", "waveform.path.ecg", false)
         } else if lower.contains("windowserver") {
             return ("WindowServer", "macwindow", false)
         } else if lower.contains("onedrive") || lower.contains("dropbox") || lower.contains("cloudd") {
