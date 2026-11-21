@@ -4,7 +4,7 @@
 set -e
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="Pulse"
-VERSION="1.5.5"
+VERSION="1.5.6"
 BUNDLE_ID="com.sulee.pulse"
 DIST_DIR="$PROJ_DIR/dist"
 
