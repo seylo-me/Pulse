@@ -145,11 +145,12 @@ struct SystemSnapshot {
     var cpuCores: Int          // 10
     var cpuThreads: Int        // 20
     
-    // GPU (AMD Radeon Pro 5500 XT)
-    var gpuBrand: String       // "AMD Radeon Pro 5500 XT"
+    // GPU
+    var gpuBrand: String       // e.g. "AMD Radeon Pro 5500 XT"
+    var gpuArch: String        // e.g. "Unified" or "5500 XT"
     var gpuUsage: Double       // e.g. 6%
-    var gpuVRAMUsage: Double   // e.g. 96%
-    var gpuTemp: String        // e.g. "69°C"
+    var gpuVRAMUsage: Double   // e.g. 94%
+    var gpuTemp: String        // e.g. "66°C"
     var gpuFPS: Int            // e.g. 60
     
     // Memory (40 GB DDR4)
@@ -197,9 +198,10 @@ struct SystemSnapshot {
         cpuCores: 10,
         cpuThreads: 20,
         gpuBrand: "AMD Radeon Pro 5500 XT",
-        gpuUsage: 8.0,
-        gpuVRAMUsage: 96.0,
-        gpuTemp: "69°C",
+        gpuArch: "5500 XT",
+        gpuUsage: 0.0,
+        gpuVRAMUsage: 0.0,
+        gpuTemp: "正常",
         gpuFPS: 60,
         memUsage: 64.0,
         memUsedGB: 25.7,

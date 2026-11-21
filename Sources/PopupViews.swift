@@ -731,7 +731,7 @@ struct SystemPopupView: View {
                         .font(.oppoSans(11.5, weight: .semibold))
                         .foregroundColor(ThemeColors.textPrimary)
                     Spacer()
-                    Text("60 FPS")
+                    Text("\(monitor.snapshot.gpuFPS) FPS")
                         .font(.sfSans(9.5, weight: .bold, design: .monospaced))
                         .foregroundColor(ThemeColors.accentViolet)
                         .padding(.horizontal, 5)
@@ -744,7 +744,7 @@ struct SystemPopupView: View {
                     gpuMiniBadge(title: "GPU 负载", value: String(format: "%.0f%%", monitor.snapshot.gpuUsage), valueColor: ThemeColors.accentBlue)
                     gpuMiniBadge(title: monitor.snapshot.isAppleSilicon ? "统一内存" : "显存占用", value: String(format: "%.0f%%", monitor.snapshot.gpuVRAMUsage), valueColor: ThemeColors.accentViolet)
                     gpuMiniBadge(title: "核心温度", value: monitor.snapshot.gpuTemp, valueColor: ThemeColors.textPrimary)
-                    gpuMiniBadge(title: "架构", value: monitor.snapshot.isAppleSilicon ? "Unified" : "5500 XT", valueColor: ThemeColors.textSecondary)
+                    gpuMiniBadge(title: "架构", value: monitor.snapshot.gpuArch, valueColor: ThemeColors.textSecondary)
                 }
                 
                 Text(monitor.snapshot.gpuBrand)

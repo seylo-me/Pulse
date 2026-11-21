@@ -5,6 +5,7 @@ import AppKit
 import SystemConfiguration
 import Network
 import CoreWLAN
+import Metal
 
 class SystemMonitor: ObservableObject {
     @Published var selectedTab: PopupModeTab = .traffic
@@ -68,18 +69,18 @@ class SystemMonitor: ObservableObject {
     private var prevNetBytes: (up: UInt64, down: UInt64) = (0, 0)
     private var prevNetTime: Date = Date()
     private var prevCPUInfo: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64) = (0, 0, 0, 0)
-    private var totalUpBytes: UInt64 = 197132288   // ~188 MB session
-    private var totalDownBytes: UInt64 = 242221056 // ~231 MB session
+    private var totalUpBytes: UInt64 = UInt64(UserDefaults.standard.double(forKey: "pulse_total_up_bytes"))
+    private var totalDownBytes: UInt64 = UInt64(UserDefaults.standard.double(forKey: "pulse_total_down_bytes"))
     
     // Cached hardware traits (computed once on launch to prevent continuous sysctl/IOKit polling)
     private lazy var cachedCPUBrand: String = { self.fetchCPUBrand() }()
-    private lazy var cachedGPUBrand: String = { self.fetchGPUBrand(cpuBrand: self.cachedCPUBrand) }()
+    private lazy var cachedGPUInfo: (brand: String, arch: String, isUnified: Bool) = { self.fetchGPUInfo() }()
     private lazy var cachedCPUCores: (cores: Int, threads: Int) = { self.fetchCPUCores() }()
     private lazy var cachedCPUFreq: String = { self.fetchCPUFreq(cpuBrand: self.cachedCPUBrand) }()
     private lazy var cachedIsDesktop: Bool = { self.fetchIsDesktopMac() }()
-    private var cachedDiskUsage: (Double, Double) = (1562.0, 1863.0)
+    private var cachedDiskUsage: (Double, Double) = (0.0, 0.0)
     private var lastDiskCheckTime: Date = .distantPast
-    private var cachedUptime: String = "14小时 22分钟"
+    private var cachedUptime: String = "刚刚"
     private var lastUptimeCheckTime: Date = .distantPast
     
     // Process Network Telemetry
@@ -94,12 +95,7 @@ class SystemMonitor: ObservableObject {
     init() {
         var initialBars: [SpectrumBar] = []
         for i in 0..<barCount {
-            let progress = Double(i) / Double(barCount)
-            let waveFactor = sin(progress * .pi * 3.0) * 0.3 + 0.4
-            let randomNoise = Double.random(in: 0.1...0.3)
-            let upH = CGFloat(max(0.08, min(0.95, waveFactor + randomNoise * 0.5)))
-            let dnH = CGFloat(max(0.08, min(0.95, waveFactor * 0.8 + randomNoise * 0.6)))
-            initialBars.append(SpectrumBar(id: i, uploadHeight: upH, downloadHeight: dnH))
+            initialBars.append(SpectrumBar(id: i, uploadHeight: 0.05, downloadHeight: 0.05))
         }
         self.spectrumBars = initialBars
         
@@ -149,13 +145,13 @@ class SystemMonitor: ObservableObject {
             lastDiskCheckTime = Date()
         }
         
-        let memPct = memTotal > 0 ? (memUsed / memTotal * 100.0) : 77.0
-        let diskPct = cachedDiskUsage.1 > 0 ? (cachedDiskUsage.0 / cachedDiskUsage.1 * 100.0) : 84.0
+        let memPct = memTotal > 0 ? (memUsed / memTotal * 100.0) : 0.0
+        let diskPct = cachedDiskUsage.1 > 0 ? (cachedDiskUsage.0 / cachedDiskUsage.1 * 100.0) : 0.0
         
         var current = self.snapshot
-        current.cpuUsage = cpu > 0 ? cpu : current.cpuUsage
-        current.memUsage = memPct > 0 ? memPct : current.memUsage
-        current.diskUsage = diskPct > 0 ? diskPct : current.diskUsage
+        current.cpuUsage = cpu
+        current.memUsage = memPct
+        current.diskUsage = diskPct
         current.uploadSpeed = upSpeed
         current.downloadSpeed = downSpeed
         current.uploadTotal = formatBytes(totalUpBytes)
@@ -188,43 +184,48 @@ class SystemMonitor: ObservableObject {
         let uptimeStr = cachedUptime
         let loadStr = getLoadAvg()
         let cpuBrand = cachedCPUBrand
-        let gpuBrand = cachedGPUBrand
+        let gpuInfo = cachedGPUInfo
         let cpuCores = cachedCPUCores.cores
         let cpuThreads = cachedCPUCores.threads
         let cpuFreq = cachedCPUFreq
         let isDesktop = cachedIsDesktop
         let powerSource = fetchPowerSourceDescription(isDesktop: isDesktop)
         
-        let memPct = memTotal > 0 ? (memUsed / memTotal * 100.0) : 77.0
-        let diskPct = diskTotal > 0 ? (diskUsed / diskTotal * 100.0) : 84.0
+        let memPct = memTotal > 0 ? (memUsed / memTotal * 100.0) : 0.0
+        let diskPct = diskTotal > 0 ? (diskUsed / diskTotal * 100.0) : 0.0
+        
+        let gpuMetrics = fetchGPUMetrics()
+        let screenFPS = fetchScreenFPS()
+        let thermalText = fetchThermalDescription(gpuTemp: gpuMetrics.tempStr)
         
         let newSnap = SystemSnapshot(
-            cpuUsage: cpu > 0 ? cpu : Double.random(in: 6.0...8.5),
+            cpuUsage: cpu,
             cpuBrand: cpuBrand,
             cpuFreq: cpuFreq,
-            cpuTemp: "67°C",
-            cpuUser: uPct > 0 ? uPct : 7.0,
-            cpuSystem: sPct > 0 ? sPct : 2.0,
+            cpuTemp: thermalText,
+            cpuUser: uPct,
+            cpuSystem: sPct,
             cpuCores: cpuCores,
             cpuThreads: cpuThreads,
-            gpuBrand: gpuBrand,
-            gpuUsage: Double.random(in: 5.0...8.0),
-            gpuVRAMUsage: 96.0,
-            gpuTemp: "69°C",
-            gpuFPS: 60,
-            memUsage: memPct > 0 ? memPct : 77.0,
-            memUsedGB: memUsed > 0 ? memUsed : 30.6,
-            memTotalGB: memTotal > 0 ? memTotal : 40.0,
-            memPressure: 23.0,
-            memAppGB: 21.5,
-            memWiredGB: 4.0,
-            memCompressedGB: 5.1,
-            memFreeGB: 9.4,
+            gpuBrand: gpuInfo.brand,
+            gpuArch: gpuInfo.arch,
+            gpuUsage: gpuMetrics.usage,
+            gpuVRAMUsage: gpuMetrics.vramUsagePct,
+            gpuTemp: gpuMetrics.tempStr,
+            gpuFPS: screenFPS,
+            memUsage: memPct,
+            memUsedGB: memUsed,
+            memTotalGB: memTotal,
+            memPressure: 0.0,
+            memAppGB: 0.0,
+            memWiredGB: 0.0,
+            memCompressedGB: 0.0,
+            memFreeGB: max(0, memTotal - memUsed),
             diskUsage: diskPct,
             diskUsedGB: diskUsed,
             diskTotalGB: diskTotal,
-            uploadSpeed: upSpeed > 0 ? upSpeed : Double.random(in: 4.0...12.0),
-            downloadSpeed: downSpeed > 0 ? downSpeed : Double.random(in: 15.0...48.0),
+            uploadSpeed: upSpeed,
+            downloadSpeed: downSpeed,
             uploadTotal: formatBytes(totalUpBytes),
             downloadTotal: formatBytes(totalDownBytes),
             isDesktop: isDesktop,
@@ -245,8 +246,9 @@ class SystemMonitor: ObservableObject {
         }
         
         let maxRefSpeed: Double = 120.0
-        let normUp = CGFloat(max(0.08, min(0.95, (up / maxRefSpeed) * Double.random(in: 0.7...1.2))))
-        let normDown = CGFloat(max(0.08, min(0.95, (down / maxRefSpeed) * Double.random(in: 0.8...1.1))))
+        // Calm steady baseline (0.05) when idle; scales with real speed when active
+        let normUp: CGFloat = up > 0.1 ? CGFloat(max(0.08, min(0.95, up / maxRefSpeed))) : 0.05
+        let normDown: CGFloat = down > 0.1 ? CGFloat(max(0.08, min(0.95, down / maxRefSpeed))) : 0.05
         
         let nextId = (updated.last?.id ?? 0) + 1
         updated.append(SpectrumBar(id: nextId, uploadHeight: normUp, downloadHeight: normDown))
@@ -479,38 +481,125 @@ class SystemMonitor: ObservableObject {
         }
     }
     
-    // MARK: - Hardware Inspection (Cached)
+    // MARK: - Hardware Inspection (Real & Dynamic)
     private func fetchCPUBrand() -> String {
         var size = 0
         sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
         if size > 0 {
             var buffer = [CChar](repeating: 0, count: size)
             if sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0) == 0 {
-                let brand = String(cString: buffer).trimmingCharacters(in: .whitespacesAndNewlines)
+                var brand = String(cString: buffer).trimmingCharacters(in: .whitespacesAndNewlines)
+                brand = brand.replacingOccurrences(of: "(R)", with: "")
+                             .replacingOccurrences(of: "(TM)", with: "")
+                             .replacingOccurrences(of: "CPU", with: "")
+                             .replacingOccurrences(of: "  ", with: " ")
+                             .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !brand.isEmpty {
-                    if brand.contains("Intel") {
-                        return "10-Core Intel Core i9-10910 @ 3.60 GHz"
-                    }
                     return brand
                 }
             }
         }
         #if arch(arm64)
-        return "Apple Silicon (M-Series)"
+        return "Apple Silicon"
         #else
-        return "10-Core Intel Core i9 @ 3.60 GHz"
+        return "Intel Processor"
         #endif
     }
     
-    private func fetchGPUBrand(cpuBrand: String) -> String {
-        if cpuBrand.contains("Apple") {
-            return "\(cpuBrand) GPU · 统一内存架构"
+    private func fetchGPUInfo() -> (brand: String, arch: String, isUnified: Bool) {
+        if let dev = MTLCreateSystemDefaultDevice() {
+            let name = dev.name
+            let isUnified = dev.hasUnifiedMemory
+            let maxMemGB = Double(dev.recommendedMaxWorkingSetSize) / (1024.0 * 1024.0 * 1024.0)
+            
+            if isUnified {
+                return ("\(name) · 统一内存架构", "Unified", true)
+            } else {
+                let vram = round(maxMemGB)
+                let vramStr = vram > 0 ? "\(Int(vram)) GB 显存" : ""
+                let arch = name.components(separatedBy: " ").last ?? "PCIe"
+                let brandStr = "\(name)\(vramStr.isEmpty ? "" : " · \(vramStr)")"
+                return (brandStr, arch, false)
+            }
         }
         #if arch(arm64)
-        return "Apple M-Series GPU · 统一内存架构"
+        return ("Apple Silicon GPU · 统一内存架构", "Unified", true)
         #else
-        return "AMD Radeon Pro 5500 XT · 8 GB GDDR6 显存"
+        return ("集成/独立显卡", "Discrete", false)
         #endif
+    }
+    
+    private func fetchGPUMetrics() -> (usage: Double, vramUsagePct: Double, tempStr: String) {
+        var iterator: io_iterator_t = 0
+        let match = IOServiceMatching("IOAccelerator")
+        var bestUsage: Double = 0.0
+        var bestVRAMPct: Double = 0.0
+        var bestTempStr: String = ""
+        
+        if IOServiceGetMatchingServices(kIOMainPortDefault, match, &iterator) == kIOReturnSuccess {
+            while case let entry = IOIteratorNext(iterator), entry != 0 {
+                var props: Unmanaged<CFMutableDictionary>?
+                if IORegistryEntryCreateCFProperties(entry, &props, kCFAllocatorDefault, 0) == kIOReturnSuccess,
+                   let dict = props?.takeRetainedValue() as? [String: Any],
+                   let perf = dict["PerformanceStatistics"] as? [String: Any] {
+                    
+                    if let util = perf["Device Utilization %"] as? NSNumber {
+                        bestUsage = max(bestUsage, util.doubleValue)
+                    } else if let util = perf["GPU Activity(%)"] as? NSNumber {
+                        bestUsage = max(bestUsage, util.doubleValue)
+                    }
+                    
+                    if let temp = perf["Temperature(C)"] as? NSNumber, temp.intValue > 0 {
+                        bestTempStr = "\(temp.intValue)°C"
+                    }
+                    
+                    if let inUse = perf["inUseVidMemoryBytes"] as? NSNumber,
+                       let free = perf["vramFreeBytes"] as? NSNumber {
+                        let total = inUse.doubleValue + free.doubleValue
+                        if total > 0 {
+                            bestVRAMPct = (inUse.doubleValue / total) * 100.0
+                        }
+                    }
+                }
+                IOObjectRelease(entry)
+            }
+            IOObjectRelease(iterator)
+        }
+        
+        if cachedGPUInfo.isUnified {
+            let (memUsed, memTotal) = getMemoryUsage()
+            if memTotal > 0 {
+                bestVRAMPct = (memUsed / memTotal) * 100.0
+            }
+        }
+        
+        return (bestUsage, bestVRAMPct, bestTempStr.isEmpty ? "正常" : bestTempStr)
+    }
+    
+    private func fetchScreenFPS() -> Int {
+        if let screen = NSScreen.main {
+            let maxFps = screen.maximumFramesPerSecond
+            if maxFps > 0 {
+                return maxFps
+            }
+        }
+        return 60
+    }
+    
+    private func fetchThermalDescription(gpuTemp: String) -> String {
+        let thermalState = ProcessInfo.processInfo.thermalState
+        switch thermalState {
+        case .nominal:
+            return gpuTemp.isEmpty ? "温度正常" : "\(gpuTemp) · 正常"
+        case .fair:
+            return gpuTemp.isEmpty ? "轻度发热" : "\(gpuTemp) · 良好"
+        case .serious:
+            return gpuTemp.isEmpty ? "负载较高" : "\(gpuTemp) · 高温"
+        case .critical:
+            return gpuTemp.isEmpty ? "过热降频" : "\(gpuTemp) · 过热"
+        @unknown default:
+            return gpuTemp.isEmpty ? "正常" : gpuTemp
+        }
     }
     
     private func fetchCPUCores() -> (cores: Int, threads: Int) {
@@ -582,7 +671,7 @@ class SystemMonitor: ObservableObject {
         if ok > 0 {
             return String(format: "%.2f %.2f %.2f", loadavg[0], loadavg[1], loadavg[2])
         }
-        return "3.31 3.46 3.44"
+        return "-- -- --"
     }
     
     // MARK: - CPU Usage
@@ -592,7 +681,7 @@ class SystemMonitor: ObservableObject {
         var numCPUsU: natural_t = 0
         
         let err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &numCPUsU, &cpuInfo, &numCPUs)
-        guard err == KERN_SUCCESS, let info = cpuInfo else { return (7.0, 5.0, 2.0) }
+        guard err == KERN_SUCCESS, let info = cpuInfo else { return (0.0, 0.0, 0.0) }
         
         var totalUser: UInt64 = 0
         var totalSystem: UInt64 = 0
@@ -616,12 +705,12 @@ class SystemMonitor: ObservableObject {
         
         prevCPUInfo = (totalUser, totalSystem, totalIdle, totalNice)
         let total = dUser + dSys + dIdle + dNice
-        guard total > 0 else { return (7.0, 5.0, 2.0) }
+        guard total > 0 else { return (0.0, 0.0, 0.0) }
         
         let userPct = Double(dUser + dNice) / Double(total) * 100.0
         let sysPct = Double(dSys) / Double(total) * 100.0
         let usage = userPct + sysPct
-        return (max(1.0, min(100.0, usage)), userPct, sysPct)
+        return (max(0.0, min(100.0, usage)), userPct, sysPct)
     }
     
     // MARK: - Memory Usage
@@ -642,7 +731,7 @@ class SystemMonitor: ObservableObject {
         
         let usedGB = usedMem / 1_073_741_824.0
         let totalGB = totalMem / 1_073_741_824.0
-        return (usedGB > 0 ? usedGB : 30.6, totalGB > 0 ? totalGB : 40.0)
+        return (usedGB, totalGB)
     }
     
     // MARK: - Disk Usage
@@ -650,17 +739,17 @@ class SystemMonitor: ObservableObject {
         guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
               let total = attrs[.systemSize] as? Int64,
               let free  = attrs[.systemFreeSize] as? Int64 else {
-            return (1562.0, 1863.0)
+            return (0.0, 0.0)
         }
         let totalGB = Double(total) / 1_073_741_824.0
         let usedGB  = Double(total - free) / 1_073_741_824.0
         return (usedGB, totalGB)
     }
     
-    // MARK: - Network Speed & Totals
+    // MARK: - Network Speed & Totals (Real Bytes, Zero Mock)
     private func getNetworkSpeed() -> (Double, Double) {
         var ifaddrs: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddrs) == 0 else { return (5.0, 18.0) }
+        guard getifaddrs(&ifaddrs) == 0 else { return (0.0, 0.0) }
         defer { freeifaddrs(ifaddrs) }
         
         var totalUp: UInt64 = 0
@@ -682,8 +771,8 @@ class SystemMonitor: ObservableObject {
         let now = Date()
         let elapsed = max(0.5, now.timeIntervalSince(prevNetTime))
         
-        var upSpeed: Double = 5.0
-        var downSpeed: Double = 18.0
+        var upSpeed: Double = 0.0
+        var downSpeed: Double = 0.0
         
         if prevNetBytes.up > 0 {
             let upDiff   = totalUp   > prevNetBytes.up   ? totalUp   - prevNetBytes.up   : 0
@@ -692,11 +781,14 @@ class SystemMonitor: ObservableObject {
             let calculatedUp = Double(upDiff) / elapsed / 1024.0
             let calculatedDown = Double(downDiff) / elapsed / 1024.0
             
-            upSpeed = calculatedUp > 0 ? calculatedUp : 5.0
-            downSpeed = calculatedDown > 0 ? calculatedDown : 18.0
+            upSpeed = calculatedUp
+            downSpeed = calculatedDown
             
             totalUpBytes   += upDiff
             totalDownBytes += downDiff
+            
+            UserDefaults.standard.set(Double(totalUpBytes), forKey: "pulse_total_up_bytes")
+            UserDefaults.standard.set(Double(totalDownBytes), forKey: "pulse_total_down_bytes")
         }
         
         prevNetBytes = (totalUp, totalDown)
